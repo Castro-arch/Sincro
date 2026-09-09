@@ -11,8 +11,13 @@ export interface ImagemEnviada {
   nomeArquivo: string;
 }
 
-/** Formatos que o Mercado Livre aceita para imagens de anuncio. */
-const MIME_ACEITOS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+/**
+ * Formatos que o Mercado Livre aceita para imagens de anuncio: a documentacao
+ * lista JPG, JPEG e PNG, e so isso. Nada de webp ou gif -- aceitar aqui o que
+ * o ML recusa la nao ajuda ninguem: o upload pareceria funcionar e a imagem
+ * so apareceria quebrada depois, na publicacao.
+ */
+const MIME_ACEITOS = ['image/jpeg', 'image/jpg', 'image/png'];
 
 /** Limite do ML por imagem. */
 export const TAMANHO_MAXIMO_BYTES = 10 * 1024 * 1024;

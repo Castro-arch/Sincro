@@ -39,16 +39,18 @@ export interface MlCategoryAttribute {
 }
 
 /**
- * Tipado pela documentacao, NAO verificado contra resposta real do ML.
+ * Conferido contra o exemplo da documentacao em 2026-09-09 (`id` na raiz e
+ * `variations[]` com size/url/secure_url), mas AINDA NAO contra uma resposta
+ * real -- o endpoint exige token. Remover este comentario apos o primeiro
+ * upload bem sucedido.
  *
- * Verificar significa: confirmar que POST /pictures/items/upload devolve `id`
- * na raiz e que `variations[]` traz mesmo `secure_url`. Remover este
- * comentario apos o primeiro upload bem sucedido.
+ * `max_size` fica opcional porque nao aparece no exemplo documentado; nenhuma
+ * parte do codigo depende dele.
  */
 export interface MlPictureUploadResponse {
   id: string;
   max_size?: string;
-  variations?: Array<{ id: string; url: string; secure_url: string; size: string }>;
+  variations?: Array<{ url: string; secure_url: string; size: string }>;
 }
 
 export interface MlItemVariationResponse {
