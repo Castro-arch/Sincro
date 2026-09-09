@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "comentario": "Usado pelo `nest build`. Sem ele o build herda o include do tsconfig.json, que traz test/ junto: a raiz comum vira a do projeto, a saida escorrega para dist/src/main.js e o script start:prod (node dist/main) quebra -- alem de empacotar os testes no build.",
+  "exclude": ["node_modules", "dist", "test", "**/*.spec.ts"]
+}
