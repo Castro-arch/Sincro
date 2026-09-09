@@ -32,12 +32,31 @@ export interface MlAuthStatus {
 const PENDING_TTL_MS = 10 * 60 * 1000;
 
 /**
+ * Teto para conseguir a vez na fila de escrita das credenciais. A secao
+ * critica e so um read-modify-write no banco, entao qualquer espera longa
+ * significa que algo travou -- e melhor desistir e tentar no proximo ciclo do
+ * que segurar a renovacao de token indefinidamente.
+ */
+const LOCK_CREDENCIAIS_TIMEOUT_MS = 10_000;
+
+/**
  * OAuth 2.0 do Mercado Livre para uma unica conta de vendedor.
  *
- * O ML rotaciona o refresh_token a cada renovacao (o antigo e descartado), por
- * isso toda renovacao precisa persistir o par novo e nunca pode rodar em
- * paralelo -- duas renovacoes simultaneas invalidariam uma a outra. A promessa
- * em `refreshInFlight` serializa isso dentro do processo.
+ * O ML rotaciona o refresh_token a cada renovacao: o antigo morre no instante
+ * em que o novo e emitido. Isso exige duas protecoes, que cobrem coisas
+ * diferentes -- vale nao confundir:
+ *
+ * - `refreshInFlight` impede duas renovacoes SIMULTANEAS, que queimariam duas
+ *   rotacoes e invalidariam uma a outra.
+ * - `filaCredenciais` serializa TODA escrita de credencial, inclusive a do
+ *   callback do OAuth -- que nao e uma renovacao e por isso escapava da trava
+ *   acima. Sem ela, uma re-autorizacao feita enquanto o job de renovacao roda
+ *   perde a escrita de um dos dois lados (lost update na linha unica), e o
+ *   refresh_token descartado ja esta morto do lado do ML.
+ *
+ * Dentro da fila, a renovacao ainda faz compare-and-set: se o refresh_token
+ * armazenado mudou enquanto ela falava com o ML, o resultado dela nasceu velho
+ * e e descartado em silencio -- quem gravou por ultimo trouxe um par mais novo.
  */
 @Injectable()
 export class MlAuthService implements OnModuleInit {
@@ -52,6 +71,16 @@ export class MlAuthService implements OnModuleInit {
   private readonly pendingAuthorizations = new Map<string, PendingAuthorization>();
 
   private refreshInFlight: Promise<string> | null = null;
+
+  /**
+   * Fila que serializa as escritas na linha unica de credenciais. Promise
+   * encadeada em vez de lock no banco: e um processo so, e a secao critica e
+   * apenas o read-modify-write -- as chamadas ao ML ficam fora dela.
+   */
+  private filaCredenciais: Promise<void> = Promise.resolve();
+
+  /** Campo (e nao a constante direto) para os testes poderem encurtar. */
+  private readonly lockTimeoutMs = LOCK_CREDENCIAIS_TIMEOUT_MS;
 
   constructor(
     @InjectRepository(MlCredentials)
@@ -121,8 +150,13 @@ export class MlAuthService implements OnModuleInit {
       code_verifier: pending.codeVerifier,
     });
 
-    const credentials = await this.persistToken(token);
-    await this.preencherDadosDoVendedor(credentials);
+    // Le /users/me ANTES de gravar: assim a autorizacao inteira vira uma unica
+    // escrita, em vez de dois saves disputando a linha com o job de renovacao.
+    const vendedor = await this.buscarDadosDoVendedor(token.access_token);
+
+    const credentials = await this.comLockDeCredenciais('callback-oauth', () =>
+      this.salvarCredenciais(token, vendedor),
+    );
 
     this.logger.log(`Autorizacao concluida para o vendedor ${credentials.mlUserId}.`);
     return this.toStatus(credentials);
@@ -173,19 +207,77 @@ export class MlAuthService implements OnModuleInit {
       );
     }
 
+    const refreshTokenUsado = credentials.refreshToken;
     this.logger.log('Renovando access_token do Mercado Livre...');
 
     const token = await this.requestToken({
       grant_type: 'refresh_token',
       client_id: this.config.getOrThrow<string>('ML_CLIENT_ID'),
       client_secret: this.config.getOrThrow<string>('ML_CLIENT_SECRET'),
-      refresh_token: credentials.refreshToken,
+      refresh_token: refreshTokenUsado,
     });
 
-    const atualizado = await this.persistToken(token);
-    this.logger.log(`Token renovado. Novo vencimento: ${atualizado.expiraEm.toISOString()}.`);
+    return this.comLockDeCredenciais('renovacao-token', async () => {
+      const atual = await this.findCredentials();
 
-    return atualizado.accessToken;
+      // Compare-and-set: se o refresh_token armazenado mudou enquanto o ML
+      // respondia, outra escrita (tipicamente o callback de uma
+      // re-autorizacao) trouxe um par mais novo. O resultado desta renovacao
+      // nasceu velho -- descarta em silencio, sem sobrescrever e sem estourar
+      // para quem chamou, e devolve o token vigente, que e valido.
+      if (atual && atual.refreshToken !== refreshTokenUsado) {
+        this.logger.warn(
+          'Renovacao descartada: o refresh_token foi rotacionado por outra escrita enquanto o ML respondia. Mantido o par mais recente.',
+        );
+        return atual.accessToken;
+      }
+
+      const atualizado = await this.salvarCredenciais(token);
+      this.logger.log(`Token renovado. Novo vencimento: ${atualizado.expiraEm.toISOString()}.`);
+
+      return atualizado.accessToken;
+    });
+  }
+
+  /**
+   * Entra na fila de escrita das credenciais e roda `tarefa` com exclusividade.
+   *
+   * O timeout existe porque a fila agora cobre toda escrita, nao so a
+   * renovacao: um chamador travado nao pode segurar o job de token para
+   * sempre. Quem nao consegue a vez desiste, e o proximo ciclo do cron tenta
+   * de novo.
+   */
+  private async comLockDeCredenciais<T>(rotulo: string, tarefa: () => Promise<T>): Promise<T> {
+    let liberar!: () => void;
+    const minhaVez = new Promise<void>((resolve) => {
+      liberar = resolve;
+    });
+
+    // Falha de um dono anterior nao pode travar a fila inteira.
+    const anterior = this.filaCredenciais.catch(() => undefined);
+    this.filaCredenciais = anterior.then(() => minhaVez);
+
+    let temporizador: NodeJS.Timeout | undefined;
+    const conseguiuAVez = await Promise.race([
+      anterior.then(() => true),
+      new Promise<false>((resolve) => {
+        temporizador = setTimeout(() => resolve(false), this.lockTimeoutMs);
+      }),
+    ]);
+    clearTimeout(temporizador);
+
+    if (!conseguiuAVez) {
+      liberar();
+      throw new ServiceUnavailableException(
+        `Escrita de credenciais ocupada por mais de ${this.lockTimeoutMs / 1000}s (${rotulo}). Nova tentativa no proximo ciclo.`,
+      );
+    }
+
+    try {
+      return await tarefa();
+    } finally {
+      liberar();
+    }
   }
 
   /** True quando o token ja venceu ou vence dentro da margem configurada. */
@@ -271,42 +363,57 @@ export class MlAuthService implements OnModuleInit {
     }
   }
 
-  /** Grava (ou atualiza) a unica linha de credenciais. */
-  private async persistToken(token: MlTokenResponse): Promise<MlCredentials> {
+  /**
+   * Grava (ou atualiza) a unica linha de credenciais.
+   *
+   * Deve rodar sempre dentro de `comLockDeCredenciais`: e um read-modify-write
+   * da mesma linha, e dois chamadores em paralelo perdem uma das escritas.
+   */
+  private async salvarCredenciais(
+    token: MlTokenResponse,
+    vendedor?: { id: string; nickname: string } | null,
+  ): Promise<MlCredentials> {
     const existente = await this.findCredentials();
-    const expiraEm = new Date(Date.now() + token.expires_in * 1000);
 
     const credentials =
       existente ?? this.credentialsRepo.create({ singleton: true } as Partial<MlCredentials>);
 
     credentials.accessToken = token.access_token;
     credentials.refreshToken = token.refresh_token;
-    credentials.expiraEm = expiraEm;
+    credentials.expiraEm = new Date(Date.now() + token.expires_in * 1000);
     credentials.scope = token.scope ?? null;
     credentials.tokenType = token.token_type ?? null;
-    if (token.user_id) {
+
+    if (vendedor) {
+      credentials.mlUserId = vendedor.id;
+      credentials.nickname = vendedor.nickname;
+    } else if (token.user_id) {
       credentials.mlUserId = String(token.user_id);
     }
 
     return this.credentialsRepo.save(credentials);
   }
 
-  /** Busca nickname e id do vendedor logo apos a autorizacao inicial. */
-  private async preencherDadosDoVendedor(credentials: MlCredentials): Promise<void> {
+  /**
+   * Le /users/me para descobrir id e nickname do vendedor. Falhar aqui nao e
+   * fatal: o token ja e valido, e o id pode ser preenchido numa proxima
+   * autorizacao.
+   */
+  private async buscarDadosDoVendedor(
+    accessToken: string,
+  ): Promise<{ id: string; nickname: string } | null> {
     try {
       const response = await axios.get<MlUserResponse>(
         `${this.config.getOrThrow<string>('ML_API_URL')}/users/me`,
         {
-          headers: { Authorization: `Bearer ${credentials.accessToken}` },
+          headers: { Authorization: `Bearer ${accessToken}` },
           timeout: 20_000,
         },
       );
-      credentials.mlUserId = String(response.data.id);
-      credentials.nickname = response.data.nickname;
-      await this.credentialsRepo.save(credentials);
+      return { id: String(response.data.id), nickname: response.data.nickname };
     } catch (error) {
-      // Nao e fatal: o token ja esta salvo e o id pode ser preenchido depois.
       this.logger.warn(`Nao foi possivel ler /users/me apos a autorizacao: ${String(error)}`);
+      return null;
     }
   }
 

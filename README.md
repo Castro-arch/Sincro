@@ -159,6 +159,29 @@ Detalhe importante em `PUT /items/{id}`: o ML trata `variations` como estado
 completo -- variacao ausente do payload e **removida** do anuncio. Por isso
 toda atualizacao reenvia o conjunto inteiro de variacoes, nunca so a que mudou.
 
+## Como as credenciais se mantem coerentes
+
+O ML rotaciona o `refresh_token` a cada renovacao: o antigo morre no instante
+em que o novo e emitido. Perder uma escrita significa ficar com um token ja
+morto e ter que refazer o OAuth na mao. Duas protecoes, que cobrem coisas
+diferentes:
+
+- **Renovacoes nunca rodam em paralelo.** Chamadas concorrentes compartilham a
+  mesma renovacao em voo, em vez de queimar duas rotacoes.
+- **Toda escrita de credencial e serializada**, inclusive a do callback do
+  OAuth -- que nao e uma renovacao. Sem isso, refazer o `/ml/auth/login`
+  enquanto o job de renovacao roda perde a escrita de um dos dois lados.
+
+Alem da fila, a renovacao faz **compare-and-set**: se o `refresh_token`
+armazenado mudou enquanto ela falava com o ML, o resultado dela nasceu velho e
+e descartado em silencio (so log), devolvendo ao chamador o par mais recente.
+A fila tem timeout curto -- um chamador travado nao segura o job de token para
+sempre; quem nao consegue a vez tenta no proximo ciclo.
+
+Vale notar que a **primeira** autorizacao e imune por outro motivo: sem linha
+em `ml_credentials`, os dois jobs saem cedo (`sem-credenciais`) e nao ha com
+quem competir. A janela real e a re-autorizacao.
+
 ## Schema
 
 | Tabela | Papel |
@@ -181,9 +204,8 @@ npm test
 
 Cobrem o que quebra silenciosamente: idempotencia do polling, estorno de
 cancelamento, reversao de estoque quando o ML recusa, montagem do payload de
-publicacao, reenvio integral das variacoes e a serializacao da renovacao de
-token (o ML rotaciona o `refresh_token`, entao duas renovacoes em paralelo
-invalidariam uma a outra).
+publicacao, reenvio integral das variacoes e a concorrencia em torno das
+credenciais.
 
 ## Comandos
 

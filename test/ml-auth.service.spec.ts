@@ -116,4 +116,96 @@ describe('MlAuthService', () => {
       expect(typeof original).toBe('function');
     });
   });
+  describe('escrita concorrente de credenciais', () => {
+    /** Atalho para exercitar a fila diretamente. */
+    const comLock = (
+      servico: MlAuthService,
+      rotulo: string,
+      tarefa: () => Promise<unknown>,
+    ): Promise<unknown> =>
+      (
+        Reflect.get(servico, 'comLockDeCredenciais') as (
+          r: string,
+          t: () => Promise<unknown>,
+        ) => Promise<unknown>
+      ).call(servico, rotulo, tarefa);
+
+    it('descarta a renovacao quando o callback gravou um par mais novo durante a chamada ao ML', async () => {
+      let armazenado = credenciais(60 * 1000);
+      repo.findOne.mockImplementation(async () => armazenado);
+
+      Reflect.set(service, 'requestToken', async () => {
+        // Enquanto o ML responde, o callback de uma re-autorizacao grava outro
+        // par -- exatamente a janela do lost update.
+        armazenado = {
+          ...credenciais(6 * 60 * 60 * 1000),
+          accessToken: 'token-do-callback',
+          refreshToken: 'refresh-do-callback',
+        } as MlCredentials;
+        return {
+          access_token: 'token-da-renovacao',
+          refresh_token: 'refresh-da-renovacao',
+          expires_in: 21600,
+          token_type: 'Bearer',
+        };
+      });
+
+      const resultado = await service.refreshAccessToken();
+
+      // Descarte silencioso: devolve o par mais novo e nao sobrescreve nada.
+      expect(resultado).toBe('token-do-callback');
+      expect(repo.save).not.toHaveBeenCalled();
+    });
+
+    it('persiste normalmente quando ninguem mexeu no refresh_token', async () => {
+      repo.findOne.mockResolvedValue(credenciais(60 * 1000));
+      Reflect.set(service, 'requestToken', async () => ({
+        access_token: 'token-da-renovacao',
+        refresh_token: 'refresh-da-renovacao',
+        expires_in: 21600,
+        token_type: 'Bearer',
+      }));
+
+      await expect(service.refreshAccessToken()).resolves.toBe('token-da-renovacao');
+      expect(repo.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('serializa escritas concorrentes em vez de deixa-las se sobrepor', async () => {
+      const ordem: string[] = [];
+
+      await Promise.all([
+        comLock(service, 'a', async () => {
+          ordem.push('a-inicio');
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          ordem.push('a-fim');
+        }),
+        comLock(service, 'b', async () => {
+          ordem.push('b-inicio');
+          ordem.push('b-fim');
+        }),
+      ]);
+
+      expect(ordem).toEqual(['a-inicio', 'a-fim', 'b-inicio', 'b-fim']);
+    });
+
+    it('desiste da vez apos o timeout, sem travar a fila para sempre', async () => {
+      Reflect.set(service, 'lockTimeoutMs', 30);
+
+      let destravar!: () => void;
+      const preso = comLock(service, 'travado', async () => {
+        await new Promise<void>((resolve) => {
+          destravar = resolve;
+        });
+      });
+
+      await expect(comLock(service, 'segundo', async () => 'nunca roda')).rejects.toThrow(
+        /Escrita de credenciais ocupada/,
+      );
+
+      // Liberado o primeiro, a fila volta a aceitar escrita.
+      destravar();
+      await preso;
+      await expect(comLock(service, 'terceiro', async () => 'ok')).resolves.toBe('ok');
+    });
+  });
 });
