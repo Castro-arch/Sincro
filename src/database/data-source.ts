@@ -27,4 +27,6 @@ export const AppDataSource = new DataSource({
   logging: ['error', 'warn', 'migration'],
 });
 
-export default AppDataSource;
+// Export unico de proposito: o CLI do TypeORM recusa o arquivo se encontrar
+// mais de um DataSource exportado ("must contain only one export of
+// DataSource instance"), entao nada de `export default` aqui tambem.
