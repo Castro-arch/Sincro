@@ -39,13 +39,8 @@ export interface MlCategoryAttribute {
 }
 
 /**
- * Conferido contra o exemplo da documentacao em 2026-09-09 (`id` na raiz e
- * `variations[]` com size/url/secure_url), mas AINDA NAO contra uma resposta
- * real -- o endpoint exige token. Remover este comentario apos o primeiro
- * upload bem sucedido.
- *
- * `max_size` fica opcional porque nao aparece no exemplo documentado; nenhuma
- * parte do codigo depende dele.
+ * `max_size` fica opcional porque nao aparece nas respostas observadas;
+ * nenhuma parte do codigo depende dele.
  */
 export interface MlPictureUploadResponse {
   id: string;
