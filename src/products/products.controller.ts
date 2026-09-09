@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put } from '@nestjs/
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateStockBatchDto, UpdateStockDto } from './dto/update-stock.dto';
+import { UpdateStatusDto } from './dto/update-status.dto';
 import { Listing } from './entities/listing.entity';
 import { Variation } from './entities/variation.entity';
 
@@ -38,6 +39,15 @@ export class ProductsController {
   ): Promise<{ sincronizado: boolean }> {
     await this.productsService.sincronizarComMl(listingId);
     return { sincronizado: true };
+  }
+
+  /** Pausa, reativa ou encerra o anuncio no Mercado Livre. */
+  @Put(':listingId/status')
+  async alterarStatus(
+    @Param('listingId', ParseUUIDPipe) listingId: string,
+    @Body() dto: UpdateStatusDto,
+  ): Promise<Listing> {
+    return this.productsService.alterarStatus(listingId, dto.status);
   }
 
   /** Novo estoque (absoluto) de uma variacao -- reflete no ML na hora. */

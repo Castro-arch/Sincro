@@ -104,13 +104,22 @@ export class MlItemService {
       });
     } else {
       await this.http.put(`/items/${listing.mlItemId}`, {
-        variations: variations.map((v) => ({
-          id: Number(v.mlVariationId),
-          price: Number(v.preco),
-          available_quantity: v.estoque,
-          attribute_combinations: v.atributos,
-          picture_ids: v.pictureIds ?? [],
-        })),
+        variations: variations.map((v) => {
+          const payload: MlVariationPayload = {
+            id: Number(v.mlVariationId),
+            price: Number(v.preco),
+            available_quantity: v.estoque,
+            attribute_combinations: v.atributos,
+          };
+          // Mesma regra da publicacao -- e o ML recusa `picture_ids` vazio
+          // ("Null or Empty is not valid"), entao o campo some quando nao ha
+          // imagem nenhuma, em vez de ir como array vazio.
+          const imagens = this.imagensDaVariacao(listing, v);
+          if (imagens.length) {
+            payload.picture_ids = imagens;
+          }
+          return payload;
+        }),
       });
     }
 
@@ -123,6 +132,22 @@ export class MlItemService {
   async alterarStatus(mlItemId: string, status: 'active' | 'paused' | 'closed'): Promise<void> {
     await this.http.put(`/items/${mlItemId}`, { status });
     this.logger.log(`Anuncio ${mlItemId} passou para status "${status}".`);
+  }
+
+  /**
+   * Imagens que acompanham uma variacao no payload do ML.
+   *
+   * O ML exige que TODA variacao tenha ao menos uma imagem ("Every variation
+   * of category X must have between 1 and 10 pictures") e recusa o campo
+   * vazio ("Null or Empty is not valid for item.variations.picture_ids").
+   * Variacao sem foto propria herda as do anuncio.
+   *
+   * Vive num metodo so porque a regra vale na publicacao E na sincronizacao:
+   * quando estava escrita duas vezes, so uma delas foi corrigida, e a
+   * atualizacao de estoque quebrava num anuncio que publicou sem problema.
+   */
+  private imagensDaVariacao(listing: Listing, variation: Variation): string[] {
+    return variation.pictureIds?.length ? variation.pictureIds : (listing.pictureIds ?? []);
   }
 
   // ------------------------------------------------------------------ payload
@@ -162,8 +187,9 @@ export class MlItemService {
         available_quantity: v.estoque,
         attribute_combinations: v.atributos,
       };
-      if (v.pictureIds?.length) {
-        variacao.picture_ids = v.pictureIds;
+      const imagens = this.imagensDaVariacao(listing, v);
+      if (imagens.length) {
+        variacao.picture_ids = imagens;
       }
       if (v.sku) {
         variacao.attributes = [{ id: 'SELLER_SKU', value_name: v.sku }];

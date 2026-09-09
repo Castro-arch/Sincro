@@ -20,6 +20,17 @@ export class AtributoDto {
   @IsNotEmpty()
   id!: string;
 
+  /**
+   * Nome legivel do atributo ("Cor", "Tamanho"). O ML devolve e aceita esse
+   * campo em attribute_combinations, e o dashboard depende dele para
+   * descrever a variacao -- sem ele, a tela mostra "COLOR: Azul" em vez de
+   * "Cor: Azul". Como o ValidationPipe roda com forbidNonWhitelisted, faltar
+   * aqui nao era so uma omissao: derrubava o cadastro inteiro com 400.
+   */
+  @IsString()
+  @IsOptional()
+  name?: string;
+
   @IsString()
   @IsOptional()
   value_name?: string;

@@ -12,6 +12,7 @@ import { Listing, ListingStatus } from './entities/listing.entity';
 import { Variation } from './entities/variation.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateStockBatchDto, UpdateStockDto } from './dto/update-stock.dto';
+import { StatusMl } from './dto/update-status.dto';
 import { MlCategoryService } from '../mercado-livre/categories/ml-category.service';
 import { MlItemService } from '../mercado-livre/items/ml-item.service';
 
@@ -292,6 +293,39 @@ export class ProductsService {
     );
 
     return variacao;
+  }
+
+  /**
+   * Pausa, reativa ou encerra o anuncio no ML e reflete o status no banco.
+   *
+   * Sem isto o Sincro so sabia criar anuncio: tirar do ar exigia entrar no
+   * painel do ML, o que quebra a premissa de que o ciclo de vida inteiro
+   * passa por aqui.
+   */
+  async alterarStatus(listingId: string, status: StatusMl): Promise<Listing> {
+    const listing = await this.carregarListing(listingId, this.listingsRepo);
+
+    if (!listing.mlItemId) {
+      throw new BadRequestException(
+        `Anuncio ${listingId} ainda e rascunho -- nao ha o que alterar no Mercado Livre.`,
+      );
+    }
+
+    await this.itemService.alterarStatus(listing.mlItemId, status);
+
+    const equivalente: Record<StatusMl, ListingStatus> = {
+      active: ListingStatus.ATIVO,
+      paused: ListingStatus.PAUSADO,
+      closed: ListingStatus.ENCERRADO,
+    };
+
+    listing.status = equivalente[status];
+    listing.sincronizadoEm = new Date();
+    listing.ultimoErro = null;
+    await this.listingsRepo.save(listing);
+
+    this.logger.log(`Anuncio ${listing.mlItemId} agora esta "${listing.status}".`);
+    return this.carregarListing(listing.id, this.listingsRepo);
   }
 
   /** Empurra estoque e preco atuais do banco para o anuncio no ML. */

@@ -78,6 +78,17 @@ describe('MlItemService', () => {
       expect(http.post).toHaveBeenCalledTimes(1);
     });
 
+    it('faz a variacao sem foto propria herdar as imagens do anuncio', async () => {
+      const semFoto = { ...variacao('Azul', 5), pictureIds: [] } as Variation;
+
+      await service.publicar(listing(), [semFoto, variacao('Preta', 4)]);
+
+      const payload = http.post.mock.calls[0][1];
+      // Variacao sem picture_ids faz o ML recusar o anuncio inteiro.
+      expect(payload.variations[0].picture_ids).toEqual(['pic-1', 'pic-2']);
+      expect(payload.variations[1].picture_ids).toEqual(['pic-1']);
+    });
+
     it('recusa publicar sem categoria', async () => {
       await expect(
         service.publicar(listing({ categoriaId: null }), [variacao('Azul', 1)]),
@@ -98,6 +109,28 @@ describe('MlItemService', () => {
       expect(payload.variations).toHaveLength(2);
       expect(payload.variations.map((v: { id: number }) => v.id)).toEqual([77001, 77002]);
       expect(payload.variations[0].available_quantity).toBe(8);
+    });
+
+    it('herda as imagens do anuncio tambem ao sincronizar, nao so ao publicar', async () => {
+      const publicado = listing({ mlItemId: 'MLB999' });
+      const semFoto = { ...variacao('Azul', 8, '77001'), pictureIds: [] } as Variation;
+
+      await service.sincronizarEstoqueEPreco(publicado, [semFoto]);
+
+      // A regra vivia so na publicacao: sincronizar mandava [] e o ML recusava
+      // com "Null or Empty is not valid for item.variations.picture_ids".
+      const payload = http.put.mock.calls[0][1];
+      expect(payload.variations[0].picture_ids).toEqual(['pic-1', 'pic-2']);
+    });
+
+    it('omite picture_ids quando nem o anuncio tem imagem, em vez de mandar vazio', async () => {
+      const semNada = listing({ mlItemId: 'MLB999', pictureIds: [] });
+      const semFoto = { ...variacao('Azul', 8, '77001'), pictureIds: [] } as Variation;
+
+      await service.sincronizarEstoqueEPreco(semNada, [semFoto]);
+
+      const payload = http.put.mock.calls[0][1];
+      expect(payload.variations[0]).not.toHaveProperty('picture_ids');
     });
 
     it('recusa sincronizar anuncio que ainda nao foi publicado', async () => {
