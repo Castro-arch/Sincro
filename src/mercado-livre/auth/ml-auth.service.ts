@@ -336,6 +336,8 @@ export class MlAuthService implements OnModuleInit {
   private async requestToken(body: Record<string, string>): Promise<MlTokenResponse> {
     const url = `${this.config.getOrThrow<string>('ML_API_URL')}/oauth/token`;
 
+    let dados: MlTokenResponse;
+
     try {
       const response = await axios.post<MlTokenResponse>(url, new URLSearchParams(body).toString(), {
         headers: {
@@ -344,7 +346,7 @@ export class MlAuthService implements OnModuleInit {
         },
         timeout: 20_000,
       });
-      return response.data;
+      dados = response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         const data = error.response.data as { message?: string; error?: string };
@@ -359,6 +361,37 @@ export class MlAuthService implements OnModuleInit {
       }
       throw new ServiceUnavailableException(
         `Mercado Livre inacessivel ao obter token: ${String(error)}`,
+      );
+    }
+
+    // Fora do try de proposito: isto nao e falha de transporte, e o catch
+    // acima reembrulharia a mensagem em "Mercado Livre inacessivel",
+    // escondendo justamente a explicacao util.
+    this.garantirTokenCompleto(dados);
+    return dados;
+  }
+
+  /**
+   * O Sincro depende do refresh_token para tudo: sem ele o access_token morre
+   * em 6h e o job de renovacao nao tem o que renovar.
+   *
+   * O ML so devolve refresh_token se a aplicacao tiver o escopo
+   * `offline_access`. Sem essa checagem o campo ausente chegaria como
+   * undefined em uma coluna NOT NULL, e o erro visivel seria uma violacao de
+   * constraint do Postgres -- que nao diz absolutamente nada sobre escopo.
+   */
+  private garantirTokenCompleto(token: MlTokenResponse): void {
+    if (!token?.access_token) {
+      throw new ServiceUnavailableException(
+        'Mercado Livre respondeu sem access_token. Resposta inesperada do /oauth/token.',
+      );
+    }
+
+    if (!token.refresh_token) {
+      throw new UnauthorizedException(
+        'Mercado Livre nao devolveu refresh_token. A aplicacao no DevCenter precisa do escopo ' +
+          `"offline_access" (escopos recebidos: ${token.scope ?? 'nenhum'}). ` +
+          'Ajuste as permissoes da aplicacao e refaca a autorizacao em GET /ml/auth/login.',
       );
     }
   }

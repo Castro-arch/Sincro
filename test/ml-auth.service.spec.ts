@@ -208,4 +208,59 @@ describe('MlAuthService', () => {
       await expect(comLock(service, 'terceiro', async () => 'ok')).resolves.toBe('ok');
     });
   });
+  describe('resposta do /oauth/token incompleta', () => {
+    /**
+     * Sem o escopo offline_access o ML devolve token SEM refresh_token. A
+     * coluna e NOT NULL, entao sem esta checagem o erro visivel seria uma
+     * violacao de constraint do Postgres, que nao menciona escopo nenhum.
+     */
+    it('acusa a falta de offline_access quando nao vem refresh_token', async () => {
+      const semRefresh = {
+        access_token: 'APP_USR-123',
+        token_type: 'bearer',
+        expires_in: 21600,
+        scope: 'read write',
+      };
+      const validar = Reflect.get(service, 'garantirTokenCompleto') as (t: unknown) => void;
+
+      expect(() => validar.call(service, semRefresh)).toThrow(/offline_access/);
+      // A mensagem mostra o que de fato veio, para nao virar adivinhacao.
+      expect(() => validar.call(service, semRefresh)).toThrow(/read write/);
+    });
+
+    it('aceita a resposta completa sem reclamar', () => {
+      const validar = Reflect.get(service, 'garantirTokenCompleto') as (t: unknown) => void;
+
+      expect(() =>
+        validar.call(service, {
+          access_token: 'APP_USR-123',
+          refresh_token: 'TG-456',
+          token_type: 'bearer',
+          expires_in: 21600,
+          scope: 'offline_access read write',
+        }),
+      ).not.toThrow();
+    });
+
+    it('nao deixa o tratamento de erro do axios engolir a mensagem', async () => {
+      repo.findOne.mockResolvedValue(credenciais(60 * 1000));
+      Reflect.set(service, 'requestToken', undefined);
+
+      // Restaura o requestToken real e simula o ML devolvendo token incompleto.
+      const axios = require('axios');
+      const spy = jest.spyOn(axios, 'post').mockResolvedValue({
+        data: { access_token: 'APP_USR-1', token_type: 'bearer', expires_in: 21600 },
+      });
+
+      const serviceReal = new MlAuthService(repo as never, {
+        get: (c: string) => CONFIG[c],
+        getOrThrow: (c: string) => CONFIG[c],
+      } as never);
+
+      // A mensagem util precisa sobreviver -- e nao virar "Mercado Livre inacessivel".
+      await expect(serviceReal.refreshAccessToken()).rejects.toThrow(/offline_access/);
+
+      spy.mockRestore();
+    });
+  });
 });
