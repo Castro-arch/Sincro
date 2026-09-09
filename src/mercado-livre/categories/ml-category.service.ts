@@ -91,7 +91,15 @@ export class MlCategoryService {
     }));
   }
 
-  /** Somente os atributos que o ML exige para publicar nesta categoria. */
+  /**
+   * Somente os atributos que o ML exige para publicar nesta categoria.
+   *
+   * Cobre as tags `required` e `catalog_required`. NAO cobre
+   * `conditional_required` -- atributo que so vira obrigatorio dependendo do
+   * valor de outro (existe de verdade na API, verificado em 2026-09-09). Ou
+   * seja, passar nesta validacao nao garante que o ML aceite: ele ainda pode
+   * recusar por uma exigencia condicional que nao avaliamos aqui.
+   */
   async listarObrigatorios(categoriaId: string): Promise<AtributoObrigatorio[]> {
     const todos = await this.descreverAtributos(categoriaId);
     return todos.filter((a) => a.obrigatorio);

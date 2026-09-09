@@ -15,14 +15,6 @@ export interface MlUserResponse {
   site_id: string;
 }
 
-/**
- * Tipado pela documentacao, NAO verificado contra resposta real do ML.
- *
- * Verificar significa: confirmar que GET /sites/{site}/domain_discovery/search
- * devolve um array na raiz (e nao um envelope com `results`) e que os nomes de
- * campo abaixo batem. Remover este comentario apos a primeira chamada bem
- * sucedida ao predictor.
- */
 export interface MlCategoryPrediction {
   category_id: string;
   category_name: string;
