@@ -21,6 +21,58 @@ npm run migration:run
 npm run start:dev
 ```
 
+### Sem Docker (Windows)
+
+O `docker-compose.yml` continua sendo o caminho mais simples, mas nao e o
+unico. Se nao houver Docker na maquina:
+
+**Redis** -- build nativo portatil, sem instalador e sem privilegio de
+administrador (o MSI do Memurai falha sob o sandbox do winget com
+`SFXCA: Failed to create temp directory`):
+
+```powershell
+# baixar Redis-<versao>-Windows-x64-msys2.zip de
+# https://github.com/redis-windows/redis-windows/releases
+# e extrair, por exemplo, em %LOCALAPPDATA%\Redis
+cd "$env:LOCALAPPDATA\Redis\Redis-8.10.1-Windows-x64-msys2"
+.\redis-server.exe --port 6379 --appendonly yes
+```
+
+Rode a partir da pasta do Redis: passar `--dir` com um caminho que contenha
+espaco quebra o parser de configuracao do Redis. Nao e um servico -- precisa
+ser iniciado de novo a cada reboot.
+
+**PostgreSQL** -- com uma instalacao ja existente, basta criar o papel e o
+banco (o instalador padrao usa `scram-sha-256`, entao vai pedir a senha do
+superusuario):
+
+```powershell
+& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -c "CREATE USER sincro WITH PASSWORD 'sua-senha';"
+& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -c "CREATE DATABASE sincro OWNER sincro;"
+```
+
+Depois e o fluxo normal: `npm run migration:run` e `npm run start:dev`.
+
+### O OAuth exige HTTPS
+
+O Mercado Livre nao aceita `http://` no URI de redirect cadastrado no
+DevCenter, entao o callback precisa chegar por um tunel HTTPS:
+
+```powershell
+cloudflared tunnel --url http://localhost:3000
+```
+
+A URL `https://XXX.trycloudflare.com` que ele imprime muda a cada execucao, e
+tres coisas precisam concordar exatamente: o campo do DevCenter, o
+`ML_REDIRECT_URI` do `.env` e o tunel em execucao. Como o `.env` so e lido no
+boot -- e o watch mode observa `src/`, nao o `.env` -- suba o tunel **antes**
+da aplicacao; inverter a ordem produz um `redirect_uri mismatch` que parece
+erro de configuracao do ML.
+
+O tunel serve para uma unica autorizacao. Depois que os tokens estao em
+`ml_credentials`, o Sincro nunca mais precisa de URL publica, porque a
+sincronizacao e por polling e nao por webhook.
+
 ### Credenciais do Mercado Livre
 
 Crie a aplicacao em <https://developers.mercadolivre.com.br/devcenter> e
