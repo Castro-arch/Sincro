@@ -15,6 +15,14 @@ export interface MlUserResponse {
   site_id: string;
 }
 
+/**
+ * Tipado pela documentacao, NAO verificado contra resposta real do ML.
+ *
+ * Verificar significa: confirmar que GET /sites/{site}/domain_discovery/search
+ * devolve um array na raiz (e nao um envelope com `results`) e que os nomes de
+ * campo abaixo batem. Remover este comentario apos a primeira chamada bem
+ * sucedida ao predictor.
+ */
 export interface MlCategoryPrediction {
   category_id: string;
   category_name: string;
@@ -38,6 +46,13 @@ export interface MlCategoryAttribute {
   hint?: string;
 }
 
+/**
+ * Tipado pela documentacao, NAO verificado contra resposta real do ML.
+ *
+ * Verificar significa: confirmar que POST /pictures/items/upload devolve `id`
+ * na raiz e que `variations[]` traz mesmo `secure_url`. Remover este
+ * comentario apos o primeiro upload bem sucedido.
+ */
 export interface MlPictureUploadResponse {
   id: string;
   max_size?: string;
