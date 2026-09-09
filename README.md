@@ -51,7 +51,19 @@ superusuario):
 & "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -c "CREATE DATABASE sincro OWNER sincro;"
 ```
 
-Depois e o fluxo normal: `npm run migration:run` e `npm run start:dev`.
+Ou, em um passo so:
+
+```powershell
+.\scripts\setup-postgres.ps1
+```
+
+O script cria o papel e o banco (idempotente), alinha o `DB_PASSWORD` do `.env`
+com a senha que definiu e aplica as migrations. Ele existe porque essa senha
+precisa ser identica nos dois lugares: quando divergem, a falha so aparece
+depois, como erro de autenticacao do `migration:run`, que nao menciona o
+`.env`.
+
+Depois e o fluxo normal: `npm run start:dev`.
 
 ### O OAuth exige HTTPS
 
