@@ -24,6 +24,8 @@ export interface AnuncioResumo {
   status: ListingStatus;
   permalink: string | null;
   sku: string;
+  /** Primeira imagem do anuncio (id do ML) -- a lista mostra a miniatura. */
+  imagemId: string | null;
   estoqueTotal: number;
   precoMinimo: number | null;
   temEstoqueBaixo: boolean;
@@ -99,6 +101,7 @@ export class DashboardService {
         status: listing.status,
         permalink: listing.permalink,
         sku: listing.product?.sku ?? '',
+        imagemId: listing.pictureIds?.[0] ?? null,
         estoqueTotal,
         precoMinimo: precos.length ? Math.min(...precos) : null,
         temEstoqueBaixo: variacoes.some((v) => v.estoqueBaixo),

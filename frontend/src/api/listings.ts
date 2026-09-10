@@ -23,6 +23,8 @@ export interface AnuncioResumo {
   status: ListingStatus
   permalink: string | null
   sku: string
+  /** Primeira imagem (id do ML), ou null em rascunho sem foto. */
+  imagemId: string | null
   estoqueTotal: number
   precoMinimo: number | null
   temEstoqueBaixo: boolean
