@@ -1,4 +1,4 @@
-import { Header } from '@/components/layout/Header'
+import { AppShell } from '@/components/layout/AppShell'
 import { PedidoLinha } from '@/components/pedido/PedidoLinha'
 import { Button } from '@/components/ui/Button'
 import { usePedidos, useSincronizarPedidos } from '@/hooks/usePedidos'
@@ -15,16 +15,15 @@ export function Pedidos() {
   const resultado = sincronizar.data
 
   return (
-    <div className="min-h-screen bg-base">
-      <Header
-        right={
-          <Button onClick={() => sincronizar.mutate()} disabled={sincronizar.isPending}>
-            {sincronizar.isPending ? 'Buscando…' : 'Buscar agora'}
-          </Button>
-        }
-      />
+    <AppShell
+      acoes={
+        <Button onClick={() => sincronizar.mutate()} disabled={sincronizar.isPending}>
+          {sincronizar.isPending ? 'Buscando…' : 'Buscar agora'}
+        </Button>
+      }
+    >
 
-      <main className="flex flex-col gap-5 p-6">
+      <div className="flex flex-col gap-5 p-6">
         <p className="text-sm text-ink-soft">
           O Sincro busca pedidos novos a cada 5 minutos. O botão acima antecipa essa checagem —
           não é necessário para o estoque ficar em dia.
@@ -84,7 +83,7 @@ export function Pedidos() {
             )}
           </section>
         )}
-      </main>
-    </div>
+      </div>
+    </AppShell>
   )
 }

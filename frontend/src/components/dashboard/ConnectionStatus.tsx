@@ -1,17 +1,10 @@
 import { StatusDot } from '@/components/ui/StatusDot'
 import { formatSegundos } from '@/lib/format'
+import { tomDaConexao } from '@/lib/conexao'
 import type { ConexaoMl } from '@/api/dashboard'
 
-const AVISO_RENOVACAO_SEGUNDOS = 15 * 60
-
 export function ConnectionStatus({ conexao }: { conexao: ConexaoMl }) {
-  const tone =
-    !conexao.conectado || conexao.expirado
-      ? 'danger'
-      : conexao.segundosParaExpirar !== null &&
-          conexao.segundosParaExpirar < AVISO_RENOVACAO_SEGUNDOS
-        ? 'warning'
-        : 'ok'
+  const tone = tomDaConexao(conexao)
 
   return (
     <div className="flex flex-col gap-3 border border-line bg-surface p-5">

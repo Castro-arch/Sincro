@@ -1,7 +1,7 @@
+import { AppShell } from '@/components/layout/AppShell'
 import { AlertRow } from '@/components/dashboard/AlertRow'
 import { ConnectionStatus } from '@/components/dashboard/ConnectionStatus'
 import { StatTile } from '@/components/dashboard/StatTile'
-import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { useDashboard } from '@/hooks/useDashboard'
 import { formatBRL } from '@/lib/format'
@@ -10,16 +10,15 @@ export function Dashboard() {
   const { data, isLoading, isError, refetch, isFetching } = useDashboard()
 
   return (
-    <div className="min-h-screen bg-base">
-      <Header
-        right={
-          <Button variant="secondary" onClick={() => refetch()} disabled={isFetching}>
-            {isFetching ? 'Atualizando…' : 'Atualizar'}
-          </Button>
-        }
-      />
+    <AppShell
+      acoes={
+        <Button variant="secondary" onClick={() => refetch()} disabled={isFetching}>
+          {isFetching ? 'Atualizando…' : 'Atualizar'}
+        </Button>
+      }
+    >
 
-      <main className="flex flex-col gap-6 p-6">
+      <div className="flex flex-col gap-6 p-6">
         {isLoading && <p className="text-sm text-ink-soft">Carregando visão geral…</p>}
 
         {isError && (
@@ -72,7 +71,7 @@ export function Dashboard() {
             </section>
           </>
         )}
-      </main>
-    </div>
+      </div>
+    </AppShell>
   )
 }

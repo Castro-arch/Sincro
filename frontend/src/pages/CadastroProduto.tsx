@@ -1,3 +1,4 @@
+import { AppShell } from '@/components/layout/AppShell'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { CategoriaSugerida } from '@/api/categories'
@@ -7,7 +8,6 @@ import { PassoAtributos } from '@/components/cadastro/PassoAtributos'
 import { PassoCategoria } from '@/components/cadastro/PassoCategoria'
 import { PassoImagens } from '@/components/cadastro/PassoImagens'
 import { PassoVariacoes, type VariacaoForm } from '@/components/cadastro/PassoVariacoes'
-import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { AreaTexto, Campo, Entrada } from '@/components/ui/Campo'
 import { useAtributosDaCategoria } from '@/hooks/useCategorias'
@@ -85,10 +85,9 @@ export function CadastroProduto() {
   }
 
   return (
-    <div className="min-h-screen bg-base">
-      <Header />
+    <AppShell>
 
-      <main className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-6">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-6">
         <div>
           <h1 className="font-display text-3xl font-extrabold text-ink">Novo produto</h1>
           <p className="mt-1 text-sm text-ink-soft">
@@ -168,7 +167,7 @@ export function CadastroProduto() {
             <span className="text-xs text-ink-faint">Falta preencher: {faltando.join(', ')}.</span>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   )
 }

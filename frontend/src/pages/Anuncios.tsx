@@ -1,8 +1,8 @@
+import { AppShell } from '@/components/layout/AppShell'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ListingStatus } from '@/api/listings'
 import { AnuncioCard } from '@/components/anuncio/AnuncioCard'
-import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { useAnuncios } from '@/hooks/useAnuncios'
 
@@ -25,24 +25,23 @@ export function Anuncios() {
   const visiveis = filtro === 'todos' ? anuncios : anuncios.filter((a) => a.status === filtro)
 
   return (
-    <div className="min-h-screen bg-base">
-      <Header
-        right={
-          <div className="flex items-center gap-3">
-            <Button variant="secondary" onClick={() => refetch()} disabled={isFetching}>
-              {isFetching ? 'Atualizando…' : 'Atualizar'}
-            </Button>
-            <Link
-              to="/produtos/novo"
-              className="rounded-sm bg-yellow px-3.5 py-2 text-sm font-semibold text-ink-on-yellow hover:bg-yellow-pressed"
-            >
-              Novo produto
-            </Link>
-          </div>
-        }
-      />
+    <AppShell
+      acoes={
+        <>
+          <Button variant="secondary" onClick={() => refetch()} disabled={isFetching}>
+            {isFetching ? 'Atualizando…' : 'Atualizar'}
+          </Button>
+          <Link
+            to="/produtos/novo"
+            className="rounded-sm bg-yellow px-3.5 py-2 text-sm font-semibold text-ink-on-yellow hover:bg-yellow-pressed"
+          >
+            Novo produto
+          </Link>
+        </>
+      }
+    >
 
-      <main className="flex flex-col gap-5 p-6">
+      <div className="flex flex-col gap-5 p-6">
         <nav className="flex flex-wrap gap-2">
           {FILTROS.map((f) => {
             const quantos =
@@ -87,7 +86,7 @@ export function Anuncios() {
             <AnuncioCard key={anuncio.listingId} anuncio={anuncio} />
           ))}
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   )
 }
