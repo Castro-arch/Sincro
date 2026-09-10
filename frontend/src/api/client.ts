@@ -1,12 +1,24 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? '/api'
 
-// Suposição (não confirmada contra o Nest real): erro do backend chega como
-// JSON { message: string, ... } — é o formato padrão do ValidationPipe/
-// exceções do Nest, mas nunca testado por HTTP de verdade aqui. Ver seção
-// "Frontend — suposições pendentes de validação" no README raiz.
+// Confirmado contra o backend real em 2026-09-10: o Nest devolve
+// { message, error, statusCode }, mas `message` NÃO é sempre string --
+// o ValidationPipe manda um array com um item por regra violada
+// (["sku should not be empty", "nome must be a string", ...]), enquanto
+// NotFoundException, ParseUUIDPipe e os erros repassados do Mercado Livre
+// mandam string. Tipar só como string fazia o array cair no
+// `super(message)` do Error e virar "a,b,c" grudado -- justamente no caso
+// mais comum, que é erro de formulário.
 interface ErrorBody {
-  message?: string
+  message?: string | string[]
   [key: string]: unknown
+}
+
+/** Junta as várias mensagens do ValidationPipe numa frase legível. */
+function textoDoErro(body: ErrorBody | null, status: number): string {
+  const bruto = body?.message
+  if (Array.isArray(bruto)) return bruto.join('; ')
+  if (typeof bruto === 'string' && bruto.length > 0) return bruto
+  return `Erro ${status}`
 }
 
 export class ApiError extends Error {
@@ -23,7 +35,7 @@ export class ApiError extends Error {
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as ErrorBody | null
-    throw new ApiError(body?.message ?? `Erro ${res.status}`, res.status, body)
+    throw new ApiError(textoDoErro(body, res.status), res.status, body)
   }
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>

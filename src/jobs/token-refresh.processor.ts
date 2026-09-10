@@ -1,4 +1,4 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { MlAuthService } from '../mercado-livre/auth/ml-auth.service';
@@ -40,5 +40,32 @@ export class TokenRefreshProcessor extends WorkerHost {
     await this.authService.refreshAccessToken();
 
     return { renovado: true };
+  }
+
+  /**
+   * Registra toda falha de job, mesmo quando o BullMQ vai tentar de novo.
+   *
+   * Sem isto a excecao subia para a fila, que reagenda em silencio, e o log
+   * da aplicacao seguia limpo: um sistema que parece saudavel ate parar sem
+   * aviso. Aconteceu de verdade em 2026-09-10 -- um `getaddrinfo ENOTFOUND`
+   * derrubou uma tentativa e so foi possivel descobrir lendo o stacktrace
+   * guardado no Redis.
+   *
+   * Nota para quem for procurar essa linha: Logger.error escreve em stderr,
+   * nao em stdout.
+   */
+  @OnWorkerEvent('failed')
+  aoFalhar(job: Job | undefined, erro: Error): void {
+    const maximo = job?.opts?.attempts ?? 1;
+    const feitas = job?.attemptsMade ?? 0;
+    const restantes = Math.max(maximo - feitas, 0);
+    const mensagem = erro?.message ?? String(erro);
+
+    const desfecho =
+      restantes > 0
+        ? `havera nova tentativa (${restantes} de ${maximo} restante(s))`
+        : `TENTATIVAS ESGOTADAS -- o token pode vencer antes da proxima execucao do cron`;
+
+    this.logger.error(`Job ${job?.id ?? '?'} falhou: ${mensagem}. ${desfecho}.`);
   }
 }
