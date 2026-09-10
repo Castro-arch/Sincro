@@ -83,3 +83,13 @@ export function IconeRecolher(props: Props) {
     </Base>
   )
 }
+
+export function IconePergunta(props: Props) {
+  return (
+    <Base {...props}>
+      <path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12Z" />
+      <path d="M9.6 9.5a2.4 2.4 0 1 1 3.4 2.2c-.7.3-1 .8-1 1.5" />
+      <path d="M12 16.2h.01" />
+    </Base>
+  )
+}

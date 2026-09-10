@@ -108,6 +108,10 @@ export class EnvironmentVariables {
   @IsOptional()
   ORDER_POLLING_CRON = '*/5 * * * *';
 
+  @IsString()
+  @IsOptional()
+  QUESTION_POLLING_CRON = '*/2 * * * *';
+
   // ---------- Dashboard ----------
   @Type(() => Number)
   @IsInt()

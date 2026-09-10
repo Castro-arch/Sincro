@@ -91,3 +91,45 @@ export interface MlOrderSearchResponse {
   results: MlOrder[];
   paging: { total: number; offset: number; limit: number };
 }
+
+// ---------------------------------------------------------------- perguntas
+// Confirmado ao vivo em 2026-09-10 (envelope e filtros de GET /questions/search
+// com api_version=4). O shape de cada pergunta e o de POST /answers vem da
+// doc: a conta ainda nao recebeu pergunta nenhuma e o ML nao deixa perguntar
+// no proprio anuncio, entao so a primeira pergunta real vai confirma-los.
+
+export type MlQuestionStatus =
+  | 'UNANSWERED'
+  | 'ANSWERED'
+  | 'CLOSED_UNANSWERED'
+  | 'UNDER_REVIEW'
+  | 'BANNED'
+  | 'DELETED'
+  | 'DISABLED';
+
+export interface MlQuestionAnswer {
+  text: string;
+  status: string;
+  date_created: string;
+}
+
+export interface MlQuestion {
+  id: number;
+  item_id: string;
+  seller_id: number;
+  status: MlQuestionStatus;
+  /** Vazio quando a pergunta esta BANNED. */
+  text: string;
+  date_created: string;
+  deleted_from_listing?: boolean;
+  hold?: boolean;
+  suspected_spam?: boolean;
+  answer: MlQuestionAnswer | null;
+  from: { id: number };
+}
+
+export interface MlQuestionSearchResponse {
+  total: number;
+  limit: number;
+  questions: MlQuestion[];
+}

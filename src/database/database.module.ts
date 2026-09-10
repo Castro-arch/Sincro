@@ -6,6 +6,7 @@ import { Product } from '../products/entities/product.entity';
 import { Listing } from '../products/entities/listing.entity';
 import { Variation } from '../products/entities/variation.entity';
 import { Order } from '../orders/entities/order.entity';
+import { Question } from '../questions/entities/question.entity';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { Order } from '../orders/entities/order.entity';
         username: config.getOrThrow<string>('DB_USER'),
         password: config.getOrThrow<string>('DB_PASSWORD'),
         database: config.getOrThrow<string>('DB_NAME'),
-        entities: [MlCredentials, Product, Listing, Variation, Order],
+        entities: [MlCredentials, Product, Listing, Variation, Order, Question],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         migrationsTableName: 'sincro_migrations',
         // O schema e versionado por migrations -- nunca por synchronize.

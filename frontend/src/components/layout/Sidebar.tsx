@@ -5,9 +5,11 @@ import {
   IconeMais,
   IconePainel,
   IconePedido,
+  IconePergunta,
   IconeRecolher,
 } from '@/components/ui/Icone'
 import { StatusDot } from '@/components/ui/StatusDot'
+import { usePerguntasPendentes } from '@/hooks/usePerguntas'
 import { useStatusMl } from '@/hooks/useStatusMl'
 import { tomDaConexao } from '@/lib/conexao'
 import { formatSegundos } from '@/lib/format'
@@ -15,10 +17,11 @@ import { cn } from '@/lib/utils'
 
 type Icone = ComponentType<SVGProps<SVGSVGElement>>
 
-const ITENS: Array<{ rotulo: string; para: string; icone: Icone; exato?: boolean }> = [
+const ITENS: Array<{ rotulo: string; para: string; icone: Icone; exato?: boolean; selo?: 'perguntas' }> = [
   { rotulo: 'Dashboard', para: '/', icone: IconePainel, exato: true },
   { rotulo: 'Anúncios', para: '/anuncios', icone: IconeEtiqueta },
   { rotulo: 'Pedidos', para: '/pedidos', icone: IconePedido },
+  { rotulo: 'Perguntas', para: '/perguntas', icone: IconePergunta, selo: 'perguntas' },
   { rotulo: 'Cadastrar produto', para: '/produtos/novo', icone: IconeMais },
 ]
 
@@ -29,6 +32,9 @@ export function Sidebar({
   recolhida: boolean
   onAlternar: () => void
 }) {
+  const { data: pendentes } = usePerguntasPendentes()
+  const seloPerguntas = pendentes?.pendentes ?? 0
+
   return (
     <aside
       className={cn(
@@ -65,8 +71,21 @@ export function Sidebar({
               )
             }
           >
-            <item.icone />
+            <span className="relative shrink-0">
+              <item.icone />
+              {/* Recolhida, o selo vai sobre o icone: e o unico lugar que sobra. */}
+              {item.selo === 'perguntas' && seloPerguntas > 0 && recolhida && (
+                <span className="absolute -top-1.5 -right-2 min-w-4 rounded-full bg-danger px-1 text-center text-[10px] leading-4 font-semibold text-ink-on-blue">
+                  {seloPerguntas > 99 ? '99+' : seloPerguntas}
+                </span>
+              )}
+            </span>
             {!recolhida && <span className="truncate">{item.rotulo}</span>}
+            {item.selo === 'perguntas' && seloPerguntas > 0 && !recolhida && (
+              <span className="ml-auto rounded-full bg-danger px-2 py-0.5 text-xs font-semibold text-ink-on-blue">
+                {seloPerguntas > 99 ? '99+' : seloPerguntas}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

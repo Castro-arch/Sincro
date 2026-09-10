@@ -4,8 +4,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import { MercadoLivreModule } from '../mercado-livre/mercado-livre.module';
 import { OrdersModule } from '../orders/orders.module';
+import { QuestionsModule } from '../questions/questions.module';
 import { TOKEN_REFRESH_QUEUE, TokenRefreshProcessor } from './token-refresh.processor';
 import { ORDER_POLLING_QUEUE, OrderPollingProcessor } from './order-polling.processor';
+import { QUESTION_POLLING_QUEUE, QuestionPollingProcessor } from './question-polling.processor';
 
 /**
  * Jobs recorrentes do Sincro, em BullMQ sobre Redis.
@@ -33,11 +35,16 @@ import { ORDER_POLLING_QUEUE, OrderPollingProcessor } from './order-polling.proc
         },
       }),
     }),
-    BullModule.registerQueue({ name: TOKEN_REFRESH_QUEUE }, { name: ORDER_POLLING_QUEUE }),
+    BullModule.registerQueue(
+      { name: TOKEN_REFRESH_QUEUE },
+      { name: ORDER_POLLING_QUEUE },
+      { name: QUESTION_POLLING_QUEUE },
+    ),
     MercadoLivreModule,
     OrdersModule,
+    QuestionsModule,
   ],
-  providers: [TokenRefreshProcessor, OrderPollingProcessor],
+  providers: [TokenRefreshProcessor, OrderPollingProcessor, QuestionPollingProcessor],
   exports: [BullModule],
 })
 export class JobsModule implements OnModuleInit {
@@ -46,12 +53,14 @@ export class JobsModule implements OnModuleInit {
   constructor(
     @InjectQueue(TOKEN_REFRESH_QUEUE) private readonly tokenQueue: Queue,
     @InjectQueue(ORDER_POLLING_QUEUE) private readonly ordersQueue: Queue,
+    @InjectQueue(QUESTION_POLLING_QUEUE) private readonly questionsQueue: Queue,
     private readonly config: ConfigService,
   ) {}
 
   async onModuleInit(): Promise<void> {
     const tokenCron = this.config.get<string>('TOKEN_REFRESH_CRON') ?? '*/15 * * * *';
     const ordersCron = this.config.get<string>('ORDER_POLLING_CRON') ?? '*/5 * * * *';
+    const questionsCron = this.config.get<string>('QUESTION_POLLING_CRON') ?? '*/2 * * * *';
 
     await this.tokenQueue.upsertJobScheduler(
       'token-refresh-scheduler',
@@ -65,8 +74,14 @@ export class JobsModule implements OnModuleInit {
       { name: 'buscar-pedidos' },
     );
 
+    await this.questionsQueue.upsertJobScheduler(
+      'question-polling-scheduler',
+      { pattern: questionsCron },
+      { name: 'buscar-perguntas' },
+    );
+
     this.logger.log(
-      `Jobs agendados -- renovacao de token: "${tokenCron}", polling de pedidos: "${ordersCron}".`,
+      `Jobs agendados -- renovacao de token: "${tokenCron}", polling de pedidos: "${ordersCron}", polling de perguntas: "${questionsCron}".`,
     );
   }
 }

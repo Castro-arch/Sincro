@@ -10,6 +10,7 @@ import { MlPictureService } from './pictures/ml-picture.service';
 import { MlPictureController } from './pictures/ml-picture.controller';
 import { MlItemService } from './items/ml-item.service';
 import { MlOrderService } from './orders/ml-order.service';
+import { MlQuestionService } from './questions/ml-question.service';
 
 /**
  * Tudo que fala com a API do Mercado Livre. Os demais dominios (products,
@@ -25,7 +26,15 @@ import { MlOrderService } from './orders/ml-order.service';
     MlPictureService,
     MlItemService,
     MlOrderService,
+    MlQuestionService,
   ],
-  exports: [MlAuthService, MlCategoryService, MlPictureService, MlItemService, MlOrderService],
+  exports: [
+    MlAuthService,
+    MlCategoryService,
+    MlPictureService,
+    MlItemService,
+    MlOrderService,
+    MlQuestionService,
+  ],
 })
 export class MercadoLivreModule {}
