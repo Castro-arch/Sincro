@@ -1,28 +1,38 @@
 import type { ReactNode } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { StatusDot } from '@/components/ui/StatusDot'
+import { useStatusMl } from '@/hooks/useStatusMl'
 
 const NAV_LINKS: Array<{ label: string; to: string }> = [
   { label: 'Anúncios', to: '/anuncios' },
   { label: 'Pedidos', to: '/pedidos' },
 ]
 
-function StatusChip({ connected }: { connected: boolean }) {
+function StatusChip() {
+  const { data, isLoading } = useStatusMl()
+
+  // Enquanto não se sabe, o chip não afirma nada -- dizer "conectado" por
+  // omissão é pior do que dizer que ainda está checando.
+  if (isLoading) {
+    return (
+      <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap font-mono text-xs text-ink-faint">
+        <StatusDot tone="warning" />
+        verificando ML…
+      </div>
+    )
+  }
+
+  const conectado = data?.conectado === true && data?.expirado === false
+
   return (
     <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap font-mono text-xs text-ink-soft">
-      <StatusDot tone={connected ? 'ok' : 'danger'} />
-      {connected ? 'ML conectado' : 'ML desconectado'}
+      <StatusDot tone={conectado ? 'ok' : 'danger'} />
+      {conectado ? 'ML conectado' : 'ML desconectado'}
     </div>
   )
 }
 
-export function Header({
-  connected = true,
-  right,
-}: {
-  connected?: boolean
-  right?: ReactNode
-}) {
+export function Header({ right }: { right?: ReactNode }) {
   return (
     <header className="flex items-center gap-6 border-b border-line bg-base px-6 py-4">
       <Link to="/" className="font-display text-2xl font-extrabold text-ink">
@@ -45,7 +55,7 @@ export function Header({
         ))}
       </nav>
 
-      <StatusChip connected={connected} />
+      <StatusChip />
       {right}
     </header>
   )

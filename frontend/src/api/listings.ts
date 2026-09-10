@@ -61,6 +61,28 @@ export interface Listing {
   variations: Variation[]
 }
 
+// Espelha CreateProductDto de src/products/dto/create-product.dto.ts.
+// `name` no atributo é opcional pro backend, mas o dashboard usa pra
+// escrever "Cor: Azul" em vez de "COLOR: Azul" — vale sempre mandar.
+export interface NovaVariacao {
+  sku?: string
+  atributos: MlAttribute[]
+  preco: number
+  estoque: number
+  pictureIds?: string[]
+}
+
+export interface NovoProduto {
+  sku: string
+  nome: string
+  descricao?: string
+  titulo?: string
+  categoriaId?: string
+  atributos?: MlAttribute[]
+  pictureIds?: string[]
+  variacoes: NovaVariacao[]
+}
+
 export function getAnuncios(apenasAtivos = false): Promise<AnuncioResumo[]> {
   return apiGet<AnuncioResumo[]>(`/dashboard/listings${apenasAtivos ? '?apenasAtivos=true' : ''}`)
 }
@@ -71,4 +93,24 @@ export function publicarListing(listingId: string): Promise<Listing> {
 
 export function alterarStatusListing(listingId: string, status: StatusMl): Promise<Listing> {
   return apiPut<Listing>(`/products/${listingId}/status`, { status })
+}
+
+export function criarProduto(produto: NovoProduto): Promise<Listing> {
+  return apiPost<Listing>('/products', produto)
+}
+
+/**
+ * Estoque é sempre valor ABSOLUTO, nunca delta — o backend espelha esse
+ * número no ML e reverte no banco se o ML recusar.
+ */
+export function atualizarEstoque(
+  variationId: string,
+  estoque: number,
+  preco?: number,
+): Promise<Variation> {
+  return apiPut<Variation>(`/products/variations/${variationId}/stock`, { estoque, preco })
+}
+
+export function sincronizarListing(listingId: string): Promise<{ sincronizado: boolean }> {
+  return apiPost<{ sincronizado: boolean }>(`/products/${listingId}/sync`)
 }

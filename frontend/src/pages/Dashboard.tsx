@@ -12,7 +12,6 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-base">
       <Header
-        connected={data?.conexaoMl.conectado ?? false}
         right={
           <Button variant="secondary" onClick={() => refetch()} disabled={isFetching}>
             {isFetching ? 'Atualizando…' : 'Atualizar'}
