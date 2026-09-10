@@ -1,0 +1,115 @@
+@import 'tailwindcss';
+
+/* -----------------------------------------------------------------------
+ * Fontes auto-hospedadas (aprovadas na paleta dark do Sincro).
+ * Sem CDN: os arquivos vivem em src/assets/fonts e o Vite resolve o hash.
+ * --------------------------------------------------------------------- */
+@font-face {
+  font-family: 'Big Shoulders Display';
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+  src: url('./assets/fonts/big-shoulders-display-800.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('./assets/fonts/ibm-plex-sans-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url('./assets/fonts/ibm-plex-sans-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('./assets/fonts/ibm-plex-mono-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('./assets/fonts/ibm-plex-mono-500.woff2') format('woff2');
+}
+
+/* -----------------------------------------------------------------------
+ * Design tokens — fonte única da paleta aprovada em /paleta.
+ * Tudo aqui vira utility do Tailwind (bg-base, text-primary, font-display,
+ * rounded-md...). Nenhuma tela deve declarar hex ou px solto: se falta um
+ * token, o token é o que se adiciona, nunca o hex direto no componente.
+ * --------------------------------------------------------------------- */
+@theme {
+  /*
+   * Nomes escolhidos para não duplicar o prefixo da utility do Tailwind
+   * (ex.: token "surface" gera "bg-surface", não "bg-bg-surface").
+   * Mapa de volta pra paleta aprovada:
+   *   base           = fundo            (#0B0B0D)
+   *   surface        = superfície       (#17171B)
+   *   surface-raised = superfície elevada (#202024)
+   *   line / line-strong = borda sutil / borda forte
+   *   ink / ink-soft / ink-faint = texto primário / secundário / terciário
+   */
+
+  /* cor — neutros (elevação) */
+  --color-base: #0b0b0d;
+  --color-surface: #17171b;
+  --color-surface-raised: #202024;
+  --color-line: #2a2a30;
+  --color-line-strong: #3a3a42;
+
+  /* cor — texto */
+  --color-ink: #f2f2f0;
+  --color-ink-soft: #a8a8ae;
+  --color-ink-faint: #6e6e76;
+
+  /* cor — marca (únicos tons saturados da UI) */
+  --color-yellow: #ffe600;
+  --color-yellow-pressed: #e6cf00;
+  --color-blue: #3483fa;
+  --color-blue-pressed: #2968c8;
+  --color-ink-on-yellow: #141410;
+
+  /* cor — semânticas (deliberadamente distantes do amarelo de marca) */
+  --color-success: #00a650;
+  --color-success-ink: #06210f;
+  --color-warning: #ff8a00;
+  --color-warning-ink: #2b1400;
+  --color-danger: #ff453a;
+  --color-danger-ink: #2b0805;
+
+  /* tipografia */
+  --font-display: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Consolas', monospace;
+
+  /* raio — só dois degraus, de propósito (cartões nunca mais arredondados que isso) */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+}
+
+/* -----------------------------------------------------------------------
+ * Base — a paleta é dark-first e comprometida (não é tema claro/escuro
+ * alternável: é a identidade aprovada do Sincro).
+ * --------------------------------------------------------------------- */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-base);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
