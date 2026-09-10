@@ -1,9 +1,15 @@
 import { useState } from 'react'
 import type { AnuncioResumo } from '@/api/listings'
+import { EditorEstoque } from '@/components/anuncio/EditorEstoque'
 import { StatusAnuncio } from '@/components/anuncio/StatusAnuncio'
 import { VariacaoLinha } from '@/components/anuncio/VariacaoLinha'
 import { Button } from '@/components/ui/Button'
-import { useAlterarStatusListing, usePublicarListing } from '@/hooks/useAnuncios'
+import {
+  useAlterarStatusListing,
+  usePublicarListing,
+  useSincronizarListing,
+} from '@/hooks/useAnuncios'
+import { lerErroMl } from '@/lib/erroMl'
 import { formatBRL, formatDataHora } from '@/lib/format'
 import { urlDaImagemMl } from '@/lib/imagem'
 import { cn } from '@/lib/utils'
@@ -16,10 +22,17 @@ export function AnuncioLinha({ anuncio }: { anuncio: AnuncioResumo }) {
   const [aberto, setAberto] = useState(false)
   const publicar = usePublicarListing()
   const alterarStatus = useAlterarStatusListing()
+  const sincronizar = useSincronizarListing()
 
   const publicado = Boolean(anuncio.mlItemId)
-  const ocupado = publicar.isPending || alterarStatus.isPending
-  const erro = (publicar.error ?? alterarStatus.error) as Error | null
+  const ocupado = publicar.isPending || alterarStatus.isPending || sincronizar.isPending
+  const erro = (publicar.error ?? alterarStatus.error ?? sincronizar.error) as Error | null
+  const comErro = anuncio.status === 'erro'
+  // Uma variação só: o estoque edita direto na linha, sem abrir detalhes. Com
+  // os detalhes abertos o editor de lá assume, senão haveria dois campos para
+  // o mesmo estoque na mesma tela.
+  const unica =
+    publicado && !aberto && anuncio.variacoes.length === 1 ? anuncio.variacoes[0] : null
 
   return (
     <li className="border-t border-line">
@@ -41,18 +54,27 @@ export function AnuncioLinha({ anuncio }: { anuncio: AnuncioResumo }) {
           {anuncio.precoMinimo === null ? '—' : formatBRL(anuncio.precoMinimo)}
         </span>
 
-        <span
-          className={cn(
-            'text-sm',
-            anuncio.semEstoque
-              ? 'font-semibold text-danger-ink'
-              : anuncio.temEstoqueBaixo
-                ? 'font-semibold text-warning-ink'
-                : 'text-ink-soft',
-          )}
-        >
-          {anuncio.estoqueTotal} un.
-        </span>
+        {unica ? (
+          <EditorEstoque
+            variationId={unica.variationId}
+            estoque={unica.estoque}
+            preco={unica.preco}
+            rotulo={anuncio.titulo}
+          />
+        ) : (
+          <span
+            className={cn(
+              'text-sm',
+              anuncio.semEstoque
+                ? 'font-semibold text-danger-ink'
+                : anuncio.temEstoqueBaixo
+                  ? 'font-semibold text-warning-ink'
+                  : 'text-ink-soft',
+            )}
+          >
+            {anuncio.estoqueTotal} un.
+          </span>
+        )}
 
         <StatusAnuncio status={anuncio.status} />
 
@@ -63,7 +85,7 @@ export function AnuncioLinha({ anuncio }: { anuncio: AnuncioResumo }) {
               disabled={ocupado}
               onClick={() => publicar.mutate(anuncio.listingId)}
             >
-              {publicar.isPending ? 'Publicando…' : 'Publicar'}
+              {publicar.isPending ? 'Publicando…' : comErro ? 'Tentar de novo' : 'Publicar'}
             </Button>
           )}
           {publicado && anuncio.status === 'ativo' && (
@@ -96,11 +118,7 @@ export function AnuncioLinha({ anuncio }: { anuncio: AnuncioResumo }) {
         </div>
       </div>
 
-      {anuncio.ultimoErro && (
-        <p className="bg-danger-tint px-5 py-2.5 text-xs text-danger-ink">
-          Última tentativa falhou: {anuncio.ultimoErro}
-        </p>
-      )}
+      {anuncio.ultimoErro && <ErroDaPublicacao bruto={anuncio.ultimoErro} />}
       {erro && <p className="px-5 py-2.5 text-xs text-danger-ink">{erro.message}</p>}
 
       {aberto && (
@@ -118,6 +136,20 @@ export function AnuncioLinha({ anuncio }: { anuncio: AnuncioResumo }) {
               >
                 ver no Mercado Livre
               </a>
+            )}
+            {publicado && anuncio.status !== 'encerrado' && (
+              <button
+                type="button"
+                disabled={ocupado}
+                title="Reenvia ao ML o estoque e o preço que estão no Sincro"
+                className="text-xs text-blue-ink underline decoration-1 underline-offset-2 disabled:opacity-50"
+                onClick={() => sincronizar.mutate(anuncio.listingId)}
+              >
+                {sincronizar.isPending ? 'sincronizando…' : 'sincronizar com o ML'}
+              </button>
+            )}
+            {sincronizar.isSuccess && (
+              <span className="text-xs text-success-ink">sincronizado</span>
             )}
             {publicado && anuncio.status !== 'encerrado' && (
               <button
@@ -161,6 +193,28 @@ function Miniatura({ anuncio }: { anuncio: AnuncioResumo }) {
           {anuncio.sku.slice(0, 3).toUpperCase()}
         </span>
       )}
+    </div>
+  )
+}
+
+function ErroDaPublicacao({ bruto }: { bruto: string }) {
+  const { resumo, causas } = lerErroMl(bruto)
+  return (
+    <div className="bg-danger-tint px-5 py-3 text-xs text-danger-ink">
+      <p className="font-semibold">O Mercado Livre recusou a publicação: {resumo}</p>
+      {causas.length > 0 && (
+        <ul className="mt-1 list-disc pl-5">
+          {causas.map((c) => (
+            <li key={c}>{c}</li>
+          ))}
+        </ul>
+      )}
+      {/* Sem tela de edição, "tentar de novo" sem mudar nada dá o mesmo erro.
+          Dizer isso aqui evita a segunda tentativa cega. */}
+      <p className="mt-1.5 text-ink-soft">
+        Tentar de novo sem alterar o rascunho vai falhar igual. A edição de rascunho ainda não
+        existe — por enquanto, cadastre o produto de novo com os atributos corrigidos.
+      </p>
     </div>
   )
 }

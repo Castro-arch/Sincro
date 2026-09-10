@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import type { AnuncioResumo, ListingStatus } from '@/api/listings'
 import { AnuncioLinha, GRADE_ANUNCIO } from '@/components/anuncio/AnuncioLinha'
 import { AppShell } from '@/components/layout/AppShell'
@@ -44,7 +44,11 @@ function ordenar(lista: AnuncioResumo[], ordem: Ordem): AnuncioResumo[] {
 }
 
 export function Anuncios() {
-  const [aba, setAba] = useState<Aba>('todos')
+  const [params, setParams] = useSearchParams()
+  const abaDaUrl = params.get('status') as Aba | null
+  const aba: Aba = abaDaUrl && ABAS.some((a) => a.valor === abaDaUrl) ? abaDaUrl : 'todos'
+  const setAba = (valor: Aba) =>
+    setParams(valor === 'todos' ? {} : { status: valor }, { replace: true })
   const [busca, setBusca] = useState('')
   const [ordem, setOrdem] = useState<Ordem>('recentes')
   const { data, isLoading, isError, error, refetch, isFetching } = useAnuncios()
@@ -136,7 +140,23 @@ export function Anuncios() {
             </span>
           </div>
 
-          {isLoading && <p className="border-t border-line px-5 py-6 text-sm text-ink-soft">Carregando anúncios…</p>}
+          {isLoading && (
+            <ul aria-busy="true" aria-label="Carregando anúncios">
+              {[0, 1, 2].map((i) => (
+                <li key={i} className={cn(GRADE_ANUNCIO, 'animate-pulse border-t border-line py-4')}>
+                  <span className="h-14 w-14 rounded-sm bg-surface-raised" />
+                  <span className="flex flex-col gap-2">
+                    <span className="h-3.5 w-2/3 rounded-sm bg-surface-raised" />
+                    <span className="h-3 w-1/3 rounded-sm bg-surface-raised" />
+                  </span>
+                  <span className="h-3.5 w-16 rounded-sm bg-surface-raised" />
+                  <span className="h-3.5 w-10 rounded-sm bg-surface-raised" />
+                  <span className="h-5 w-16 rounded-full bg-surface-raised" />
+                  <span />
+                </li>
+              ))}
+            </ul>
+          )}
           {isError && (
             <p className="border-t border-line px-5 py-6 text-sm text-danger-ink">
               Não deu pra carregar os anúncios: {(error as Error).message}
@@ -144,11 +164,32 @@ export function Anuncios() {
           )}
 
           {data && visiveis.length === 0 && (
-            <p className="border-t border-line px-5 py-10 text-center text-sm text-ink-faint">
-              {anuncios.length === 0
-                ? 'Nenhum anúncio ainda. Comece cadastrando um produto.'
-                : 'Nada aqui com esse filtro ou busca.'}
-            </p>
+            <div className="flex flex-col items-center gap-3 border-t border-line px-5 py-10 text-center">
+              <p className="text-sm text-ink-soft">
+                {anuncios.length === 0
+                  ? 'Nenhum anúncio ainda.'
+                  : 'Nada aqui com esse filtro ou busca.'}
+              </p>
+              {anuncios.length === 0 ? (
+                <Link
+                  to="/produtos/novo"
+                  className="rounded-sm bg-blue px-6 py-2.5 text-sm font-semibold text-ink-on-blue hover:bg-blue-pressed"
+                >
+                  Cadastrar o primeiro produto
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAba('todos')
+                    setBusca('')
+                  }}
+                  className="text-sm text-blue-ink underline decoration-1 underline-offset-2"
+                >
+                  limpar filtro e busca
+                </button>
+              )}
+            </div>
           )}
 
           {visiveis.length > 0 && (

@@ -5,6 +5,7 @@ import {
   criarProduto,
   getAnuncios,
   publicarListing,
+  sincronizarListing,
 } from '@/api/listings'
 import type { StatusMl } from '@/api/types'
 
@@ -59,5 +60,14 @@ export function useCriarProduto() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
+  })
+}
+
+/** Reenvia ao ML o estoque e o preço do banco -- para quando os dois lados divergem. */
+export function useSincronizarListing() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: sincronizarListing,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   })
 }
