@@ -96,7 +96,7 @@ export function CadastroProduto() {
           </p>
         </div>
 
-        <section className="flex flex-col gap-4 border border-line bg-surface p-5">
+        <section className="flex flex-col gap-4 cartao p-5">
           <h2 className="text-sm font-semibold text-ink">1. Identificação</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Campo label="SKU" obrigatorio dica="Seu código interno, único no Sincro.">
@@ -154,7 +154,7 @@ export function CadastroProduto() {
         />
 
         {criar.isError && (
-          <p className="border border-danger bg-surface px-5 py-3 text-sm text-danger">
+          <p className="border border-danger bg-surface px-5 py-3 text-sm text-danger-ink">
             {(criar.error as Error).message}
           </p>
         )}

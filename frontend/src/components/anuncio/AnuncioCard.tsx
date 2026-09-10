@@ -16,7 +16,7 @@ export function AnuncioCard({ anuncio }: { anuncio: AnuncioResumo }) {
   const erro = (publicar.error ?? alterarStatus.error) as Error | null
 
   return (
-    <article className="border border-line bg-surface">
+    <article className="cartao">
       <div className="flex flex-wrap items-start gap-4 p-5">
         <div className="min-w-60 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
@@ -33,15 +33,15 @@ export function AnuncioCard({ anuncio }: { anuncio: AnuncioResumo }) {
         </div>
 
         <div className="flex flex-col items-end gap-1">
-          <span className="font-mono text-lg font-medium text-yellow">
+          <span className="font-mono text-lg font-semibold text-ink">
             {anuncio.precoMinimo === null ? '—' : formatBRL(anuncio.precoMinimo)}
           </span>
           <span
             className={
               anuncio.semEstoque
-                ? 'font-mono text-xs text-danger'
+                ? 'font-mono text-xs text-danger-ink'
                 : anuncio.temEstoqueBaixo
-                  ? 'font-mono text-xs text-warning'
+                  ? 'font-mono text-xs text-warning-ink'
                   : 'font-mono text-xs text-ink-soft'
             }
           >
@@ -51,13 +51,13 @@ export function AnuncioCard({ anuncio }: { anuncio: AnuncioResumo }) {
       </div>
 
       {anuncio.ultimoErro && (
-        <p className="border-t border-line bg-surface-raised px-5 py-3 text-xs text-danger">
+        <p className="border-t border-line bg-surface-raised px-5 py-3 text-xs text-danger-ink">
           Última tentativa falhou: {anuncio.ultimoErro}
         </p>
       )}
 
       {erro && (
-        <p className="border-t border-line px-5 py-3 text-xs text-danger">{erro.message}</p>
+        <p className="border-t border-line px-5 py-3 text-xs text-danger-ink">{erro.message}</p>
       )}
 
       <div className="flex flex-wrap items-center gap-3 border-t border-line px-5 py-3">
@@ -119,7 +119,7 @@ export function AnuncioCard({ anuncio }: { anuncio: AnuncioResumo }) {
             href={anuncio.permalink}
             target="_blank"
             rel="noreferrer"
-            className="text-xs text-blue underline decoration-1 underline-offset-2"
+            className="text-xs text-blue-ink underline decoration-1 underline-offset-2"
           >
             ver no Mercado Livre
           </a>

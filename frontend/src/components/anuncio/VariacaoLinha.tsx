@@ -50,7 +50,7 @@ export function VariacaoLinha({
             aria-label={`Estoque de ${variacao.descricaoAtributos}`}
             className={cn(
               'w-20 rounded-sm border bg-surface-raised px-2 py-1 text-right font-mono text-sm tabular-nums text-ink',
-              invalido ? 'border-danger' : 'border-line focus:border-line-strong',
+              invalido ? 'border-danger' : 'border-line-strong focus:border-blue',
             )}
           />
           <Button
@@ -69,9 +69,9 @@ export function VariacaoLinha({
           className={cn(
             'font-mono text-sm tabular-nums',
             variacao.estoque === 0
-              ? 'text-danger'
+              ? 'text-danger-ink'
               : variacao.estoqueBaixo
-                ? 'text-warning'
+                ? 'text-warning-ink'
                 : 'text-ink',
           )}
         >
@@ -80,7 +80,7 @@ export function VariacaoLinha({
       )}
 
       {atualizar.isError && (
-        <p className="w-full text-xs text-danger">
+        <p className="w-full text-xs text-danger-ink">
           {(atualizar.error as Error).message} — o estoque foi revertido no banco.
         </p>
       )}

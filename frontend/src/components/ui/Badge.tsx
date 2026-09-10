@@ -3,13 +3,16 @@ import { cn } from '@/lib/utils'
 
 type BadgeTone = 'ok' | 'low' | 'out' | 'neutral'
 
+/**
+ * Feedback do Andes: texto na cor forte sobre a mesma cor a 10%. Fundo
+ * saturado com texto escuro era o desenho do tema antigo; no claro, a
+ * versão tingida é o que o painel do ML usa.
+ */
 const TONE_CLASSES: Record<BadgeTone, string> = {
-  ok: 'bg-success text-success-ink',
-  low: 'bg-warning text-warning-ink',
-  out: 'bg-danger text-danger-ink',
-  // Sem cor semântica própria — reaproveita os neutros de superfície pra
-  // estados que não são "bom/atenção/ruim" (ex.: rascunho, encerrado).
-  neutral: 'bg-surface-raised text-ink-soft border border-line',
+  ok: 'bg-success-tint text-success-ink',
+  low: 'bg-warning-tint text-warning-ink',
+  out: 'bg-danger-tint text-danger-ink',
+  neutral: 'bg-surface-raised text-ink-soft',
 }
 
 export function Badge({ tone, children }: { tone: BadgeTone; children: ReactNode }) {

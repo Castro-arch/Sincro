@@ -30,15 +30,15 @@ export function Pedidos() {
         </p>
 
         {sincronizar.isError && (
-          <p className="text-sm text-danger">{(sincronizar.error as Error).message}</p>
+          <p className="text-sm text-danger-ink">{(sincronizar.error as Error).message}</p>
         )}
 
         {resultado && (
-          <p className="border border-line bg-surface px-5 py-3 font-mono text-xs text-ink-soft">
+          <p className="cartao px-5 py-3 font-mono text-xs text-ink-soft">
             {resultado.pedidosLidos} pedido(s) lido(s) · {resultado.itensNovos} novo(s) ·{' '}
             {resultado.baixasAplicadas} baixa(s) · {resultado.estornosAplicados} estorno(s)
             {resultado.ignorados > 0 && (
-              <span className="text-warning">
+              <span className="text-warning-ink">
                 {' '}
                 · {resultado.ignorados} ignorado(s) por não existir no Sincro
               </span>
@@ -47,7 +47,7 @@ export function Pedidos() {
         )}
 
         {semBaixa > 0 && (
-          <p className="border border-warning bg-surface px-5 py-3 text-sm text-warning">
+          <p className="border border-warning bg-surface px-5 py-3 text-sm text-warning-ink">
             {semBaixa} pedido(s) pago(s) sem baixa de estoque — o anúncio vendido não está no
             Sincro, então o estoque local não acompanhou o Mercado Livre.
           </p>
@@ -56,13 +56,13 @@ export function Pedidos() {
         {isLoading && <p className="text-sm text-ink-soft">Carregando pedidos…</p>}
 
         {isError && (
-          <p className="text-sm text-danger">
+          <p className="text-sm text-danger-ink">
             Não deu pra carregar os pedidos: {(error as Error).message}
           </p>
         )}
 
         {data && (
-          <section className="border border-line bg-surface">
+          <section className="cartao">
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
               <h2 className="text-sm font-semibold text-ink">
                 {pedidos.length} pedido(s)

@@ -56,7 +56,7 @@ export function PassoVariacoes({
   const duplicadas = new Set(assinaturas.filter((a, i) => a && assinaturas.indexOf(a) !== i))
 
   return (
-    <section className="flex flex-col gap-4 border border-line bg-surface p-5">
+    <section className="flex flex-col gap-4 cartao p-5">
       <div>
         <h2 className="text-sm font-semibold text-ink">5. Variações, preço e estoque</h2>
         <p className="mt-1 text-xs text-ink-faint">
@@ -74,7 +74,7 @@ export function PassoVariacoes({
               onClick={() => alternarEixo(attr.id)}
               className={
                 eixos.includes(attr.id)
-                  ? 'rounded-full border border-yellow bg-surface-raised px-3 py-1.5 text-xs font-semibold text-ink'
+                  ? 'rounded-full border border-blue bg-blue-tint px-3 py-1.5 text-xs font-semibold text-blue-ink'
                   : 'rounded-full border border-line px-3 py-1.5 text-xs text-ink-soft hover:text-ink'
               }
             >
@@ -88,7 +88,7 @@ export function PassoVariacoes({
         {variacoes.map((v, indice) => (
           <div
             key={v.chave}
-            className="grid grid-cols-1 gap-3 border border-line bg-surface-raised p-4 sm:grid-cols-2 lg:grid-cols-4"
+            className="grid grid-cols-1 gap-3 rounded-sm bg-surface-raised p-4 sm:grid-cols-2 lg:grid-cols-4"
           >
             {escolhidos.map((attr) => (
               <ValorDoEixo
@@ -133,7 +133,7 @@ export function PassoVariacoes({
               <button
                 type="button"
                 onClick={() => onMudarVariacoes(variacoes.filter((x) => x.chave !== v.chave))}
-                className="self-end text-xs text-blue underline decoration-1 underline-offset-2"
+                className="self-end text-xs text-blue-ink underline decoration-1 underline-offset-2"
               >
                 remover variação {indice + 1}
               </button>
@@ -143,7 +143,7 @@ export function PassoVariacoes({
       </div>
 
       {duplicadas.size > 0 && (
-        <p className="text-xs text-danger">
+        <p className="text-xs text-danger-ink">
           Há variações com a mesma combinação de atributos — o Mercado Livre recusa isso.
         </p>
       )}

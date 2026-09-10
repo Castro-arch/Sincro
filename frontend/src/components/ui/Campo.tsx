@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
  * string em cada um é como eles começam a divergir.
  */
 const CONTROLE =
-  'w-full rounded-sm border border-line bg-surface-raised px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-line-strong focus:outline-none disabled:opacity-50'
+  'w-full rounded-sm border border-line-strong bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-blue focus:outline-none disabled:opacity-50'
 
 export function Campo({
   label,
@@ -31,11 +31,11 @@ export function Campo({
     <label className="flex flex-col gap-1.5">
       <span className="text-xs font-semibold text-ink-soft">
         {label}
-        {obrigatorio && <span className="ml-1 text-yellow">*</span>}
+        {obrigatorio && <span className="ml-1 text-danger-ink">*</span>}
       </span>
       {children}
       {dica && <span className="text-xs text-ink-faint">{dica}</span>}
-      {erro && <span className="text-xs text-danger">{erro}</span>}
+      {erro && <span className="text-xs text-danger-ink">{erro}</span>}
     </label>
   )
 }

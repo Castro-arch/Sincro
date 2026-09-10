@@ -38,7 +38,7 @@ export function ProductCard({
         {produto.pictureId ?? produto.sku}
       </div>
       <p className="text-sm leading-snug text-ink">{produto.titulo}</p>
-      <p className="font-mono text-lg font-medium text-yellow">{produto.precoFormatado}</p>
+      <p className="font-mono text-lg font-semibold text-ink">{produto.precoFormatado}</p>
       <Badge tone={tone}>{stockLabel(produto.estoque)}</Badge>
       <div className="mt-1 flex items-center gap-3.5">
         <Button variant="primary" className="text-xs" onClick={onPublicar}>
@@ -47,7 +47,7 @@ export function ProductCard({
         <button
           type="button"
           onClick={onVerDetalhes}
-          className="text-xs text-blue underline decoration-1 underline-offset-2"
+          className="text-xs text-blue-ink underline decoration-1 underline-offset-2"
         >
           ver detalhes
         </button>

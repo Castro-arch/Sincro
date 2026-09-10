@@ -33,7 +33,7 @@ export function Anuncios() {
           </Button>
           <Link
             to="/produtos/novo"
-            className="rounded-sm bg-yellow px-3.5 py-2 text-sm font-semibold text-ink-on-yellow hover:bg-yellow-pressed"
+            className="rounded-sm bg-blue px-6 py-2.5 text-sm font-semibold text-ink-on-blue hover:bg-blue-pressed"
           >
             Novo produto
           </Link>
@@ -68,13 +68,13 @@ export function Anuncios() {
         {isLoading && <p className="text-sm text-ink-soft">Carregando anúncios…</p>}
 
         {isError && (
-          <p className="text-sm text-danger">
+          <p className="text-sm text-danger-ink">
             Não deu pra carregar os anúncios: {(error as Error).message}
           </p>
         )}
 
         {data && visiveis.length === 0 && (
-          <p className="border border-line bg-surface px-5 py-8 text-center text-sm text-ink-faint">
+          <p className="cartao px-5 py-8 text-center text-sm text-ink-faint">
             {anuncios.length === 0
               ? 'Nenhum anúncio ainda. Comece cadastrando um produto.'
               : 'Nenhum anúncio neste filtro.'}

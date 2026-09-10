@@ -5,3 +5,6 @@ coverage/
 *.log
 .DS_Store
 uploads/
+
+# Fontes de demonstracao (licenca Fontspring DEMO: sem producao, sem redistribuicao)
+Demo_Fonts/

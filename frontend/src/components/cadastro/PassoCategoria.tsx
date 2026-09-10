@@ -18,7 +18,7 @@ export function PassoCategoria({
   const sugestoes = prever.data ?? []
 
   return (
-    <section className="flex flex-col gap-4 border border-line bg-surface p-5">
+    <section className="flex flex-col gap-4 cartao p-5">
       <div>
         <h2 className="text-sm font-semibold text-ink">2. Categoria no Mercado Livre</h2>
         <p className="mt-1 text-xs text-ink-faint">
@@ -43,7 +43,7 @@ export function PassoCategoria({
       </div>
 
       {prever.isError && (
-        <p className="text-xs text-danger">{(prever.error as Error).message}</p>
+        <p className="text-xs text-danger-ink">{(prever.error as Error).message}</p>
       )}
 
       {sugestoes.length > 0 && (
@@ -55,7 +55,7 @@ export function PassoCategoria({
                 onClick={() => onEscolher(s)}
                 className={
                   categoriaId === s.category_id
-                    ? 'flex w-full items-center justify-between rounded-sm border border-yellow bg-surface-raised px-3.5 py-2.5 text-left'
+                    ? 'flex w-full items-center justify-between rounded-sm border border-blue bg-blue-tint px-3.5 py-2.5 text-left'
                     : 'flex w-full items-center justify-between rounded-sm border border-line px-3.5 py-2.5 text-left hover:border-line-strong'
                 }
               >
@@ -74,7 +74,7 @@ export function PassoCategoria({
           <button
             type="button"
             onClick={() => onEscolher(null)}
-            className="text-blue underline decoration-1 underline-offset-2"
+            className="text-blue-ink underline decoration-1 underline-offset-2"
           >
             trocar
           </button>

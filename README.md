@@ -51,7 +51,7 @@ backend não tem prefixo global de rota.
 - Tailwind CSS v4 (tokens de design via `@theme` em `src/index.css` — sem hex solto em componente)
 - [TanStack Query](https://tanstack.com/query) para estado de servidor
 - React Router para navegação client-side
-- Tipografia auto-hospedada (Big Shoulders Display, IBM Plex Sans, IBM Plex Mono — sem CDN de fonte)
+- Tipografia: Proxima Nova (a do Mercado Livre; licenciada, auto-hospedada assim que os `.woff2` estiverem em `frontend/src/assets/fonts/`). Até lá, o mesmo fallback que o próprio ML usa: `-apple-system, Helvetica, Roboto, Arial` — sem CDN de fonte
 
 ## Como rodar do zero
 
@@ -346,7 +346,7 @@ Sincro/
         ├── hooks/                # TanStack Query (useDashboard, useAnuncios...)
         ├── pages/                # uma página por rota
         ├── lib/                  # format.ts, utils.ts (cn)
-        └── index.css             # tokens de design (@theme) + fontes self-hosted
+        └── index.css             # tokens de design (@theme, paleta clara do Andes) + tabela WCAG
 ```
 
 ## Testes

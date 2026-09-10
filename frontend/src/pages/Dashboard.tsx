@@ -1,6 +1,5 @@
 import { AppShell } from '@/components/layout/AppShell'
 import { AlertRow } from '@/components/dashboard/AlertRow'
-import { ConnectionStatus } from '@/components/dashboard/ConnectionStatus'
 import { StatTile } from '@/components/dashboard/StatTile'
 import { Button } from '@/components/ui/Button'
 import { useDashboard } from '@/hooks/useDashboard'
@@ -22,7 +21,7 @@ export function Dashboard() {
         {isLoading && <p className="text-sm text-ink-soft">Carregando visão geral…</p>}
 
         {isError && (
-          <p className="text-sm text-danger">
+          <p className="text-sm text-danger-ink">
             Não deu pra carregar o dashboard. Confira se a API está no ar em{' '}
             <span className="font-mono">localhost:3000</span> e tenta de novo.
           </p>
@@ -51,10 +50,7 @@ export function Dashboard() {
               />
             </section>
 
-            <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_2fr]">
-              <ConnectionStatus conexao={data.conexaoMl} />
-
-              <div className="flex flex-col border border-line bg-surface">
+            <section className="flex flex-col cartao">
                 <h2 className="border-b border-line px-5 py-3.5 text-sm font-semibold text-ink">
                   Alertas de estoque
                 </h2>
@@ -67,7 +63,6 @@ export function Dashboard() {
                     <AlertRow key={alerta.variationId} alerta={alerta} />
                   ))
                 )}
-              </div>
             </section>
           </>
         )}

@@ -46,7 +46,7 @@ export function PedidoLinha({ pedido }: { pedido: Pedido }) {
       <Badge tone={TOM_STATUS[pedido.status]}>{pedido.status}</Badge>
 
       {baixaPendente && (
-        <span className="font-mono text-xs text-warning" title={`status no ML: ${pedido.statusMl}`}>
+        <span className="font-mono text-xs text-warning-ink" title={`status no ML: ${pedido.statusMl}`}>
           estoque não baixado
         </span>
       )}

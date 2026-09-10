@@ -40,7 +40,7 @@ export function PassoImagens({
   }
 
   return (
-    <section className="flex flex-col gap-4 border border-line bg-surface p-5">
+    <section className="flex flex-col gap-4 cartao p-5">
       <div>
         <h2 className="text-sm font-semibold text-ink">4. Imagens</h2>
         <p className="mt-1 text-xs text-ink-faint">
@@ -72,14 +72,14 @@ export function PassoImagens({
         </span>
       </div>
 
-      {recusado && <p className="text-xs text-warning">{recusado}</p>}
-      {upload.isError && <p className="text-xs text-danger">{(upload.error as Error).message}</p>}
+      {recusado && <p className="text-xs text-warning-ink">{recusado}</p>}
+      {upload.isError && <p className="text-xs text-danger-ink">{(upload.error as Error).message}</p>}
 
       {imagens.length > 0 && (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {imagens.map((img) => (
             <li key={img.id} className="flex flex-col gap-1.5">
-              <div className="flex aspect-square items-center justify-center overflow-hidden rounded-sm border border-line bg-surface-raised">
+              <div className="flex aspect-square items-center justify-center overflow-hidden rounded-sm bg-surface-raised">
                 {img.url ? (
                   <img src={img.url} alt={img.nomeArquivo} className="h-full w-full object-cover" />
                 ) : (
@@ -89,7 +89,7 @@ export function PassoImagens({
               <button
                 type="button"
                 onClick={() => onMudar(imagens.filter((i) => i.id !== img.id))}
-                className="text-xs text-blue underline decoration-1 underline-offset-2"
+                className="text-xs text-blue-ink underline decoration-1 underline-offset-2"
               >
                 remover
               </button>

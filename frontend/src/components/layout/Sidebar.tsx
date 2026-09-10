@@ -57,24 +57,16 @@ export function Sidebar({
             title={recolhida ? item.rotulo : undefined}
             className={({ isActive }) =>
               cn(
-                'relative flex items-center gap-3 rounded-sm py-2.5 text-sm transition-colors',
+                'flex items-center gap-3 rounded-sm py-2.5 text-sm transition-colors',
                 recolhida ? 'justify-center px-2' : 'px-3',
                 isActive
-                  ? 'bg-surface-raised font-semibold text-ink'
+                  ? 'bg-blue-tint font-semibold text-blue-ink'
                   : 'text-ink-soft hover:bg-surface-raised hover:text-ink',
               )
             }
           >
-            {({ isActive }) => (
-              <>
-                {/* Marca amarela do item ativo: a única cor de marca da nav. */}
-                {isActive && (
-                  <span className="absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-full bg-yellow" />
-                )}
-                <item.icone />
-                {!recolhida && <span className="truncate">{item.rotulo}</span>}
-              </>
-            )}
+            <item.icone />
+            {!recolhida && <span className="truncate">{item.rotulo}</span>}
           </NavLink>
         ))}
       </nav>
@@ -87,10 +79,9 @@ export function Sidebar({
 }
 
 /**
- * Mesma leitura do ConnectionStatus do dashboard, em formato de rodapé.
- *
- * A severidade vem de tomDaConexao() — o cartão do dashboard e este rodapé
- * compartilham a regra em vez de cada um decidir a sua.
+ * Único indicador de conexão da app: a sidebar está sempre visível, então
+ * o cartão que existia no Dashboard dizia a mesma coisa duas vezes na mesma
+ * tela e foi removido. A severidade vem de tomDaConexao().
  */
 function StatusDaConexao({ recolhida }: { recolhida: boolean }) {
   const { data, isLoading } = useStatusMl()
@@ -132,7 +123,7 @@ function StatusDaConexao({ recolhida }: { recolhida: boolean }) {
       )}
 
       {data && !data.conectado && (
-        <p className="text-xs text-danger">sem autorização — reconecte em /ml/auth/login</p>
+        <p className="text-xs text-danger-ink">sem autorização — reconecte em /ml/auth/login</p>
       )}
     </div>
   )

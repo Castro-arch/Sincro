@@ -21,7 +21,7 @@ export function PassoAtributos({
   )
 
   return (
-    <section className="flex flex-col gap-4 border border-line bg-surface p-5">
+    <section className="flex flex-col gap-4 cartao p-5">
       <div>
         <h2 className="text-sm font-semibold text-ink">3. Atributos exigidos pela categoria</h2>
         <p className="mt-1 text-xs text-ink-faint">
@@ -36,7 +36,7 @@ export function PassoAtributos({
 
       {isLoading && <p className="text-xs text-ink-soft">Consultando o Mercado Livre…</p>}
 
-      {isError && <p className="text-xs text-danger">{(error as Error).message}</p>}
+      {isError && <p className="text-xs text-danger-ink">{(error as Error).message}</p>}
 
       {obrigatorios.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
