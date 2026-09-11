@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from '@/api/client'
+import { apiGet, apiPatch, apiPost, apiPut } from '@/api/client'
 import type { MlAttribute, StatusMl } from '@/api/types'
 
 // Espelha AnuncioResumo/VariacaoResumo de src/dashboard/dashboard.service.ts
@@ -47,9 +47,19 @@ export interface Variation {
   pictureIds: string[]
 }
 
+/** Relation `product` que o backend carrega junto do listing. */
+export interface ProdutoDoListing {
+  id: string
+  sku: string
+  nome: string
+  descricao: string | null
+  custoUnitario: number | null
+}
+
 export interface Listing {
   id: string
   productId: string
+  product?: ProdutoDoListing
   mlItemId: string | null
   titulo: string
   status: ListingStatus
@@ -91,6 +101,10 @@ export function getAnuncios(apenasAtivos = false): Promise<AnuncioResumo[]> {
   return apiGet<AnuncioResumo[]>(`/dashboard/listings${apenasAtivos ? '?apenasAtivos=true' : ''}`)
 }
 
+export function getAnuncio(listingId: string): Promise<Listing> {
+  return apiGet<Listing>(`/products/${listingId}`)
+}
+
 export function publicarListing(listingId: string): Promise<Listing> {
   return apiPost<Listing>(`/products/${listingId}/publish`)
 }
@@ -117,4 +131,52 @@ export function atualizarEstoque(
 
 export function sincronizarListing(listingId: string): Promise<{ sincronizado: boolean }> {
   return apiPost<{ sincronizado: boolean }>(`/products/${listingId}/sync`)
+}
+
+// ---------------------------------------------------------------- edicao
+
+export interface VariacaoParaAtualizar {
+  variationId?: string
+  sku?: string
+  atributos?: MlAttribute[]
+  preco?: number
+  estoque?: number
+  pictureIds?: string[]
+}
+
+export interface AtualizacaoProduto {
+  nome?: string
+  descricao?: string
+  custoUnitario?: number | null
+  titulo?: string
+  /** Só aceito em rascunho: o ML recusa mudar categoria de item publicado. */
+  categoriaId?: string
+  atributos?: MlAttribute[]
+  pictureIds?: string[]
+  variacoes?: VariacaoParaAtualizar[]
+}
+
+export function atualizarProduto(listingId: string, dados: AtualizacaoProduto): Promise<Listing> {
+  return apiPatch<Listing>(`/products/${listingId}`, dados)
+}
+
+export function atualizarCusto(productId: string, custoUnitario: number | null): Promise<unknown> {
+  return apiPatch(`/products/produto/${productId}/custo`, { custoUnitario })
+}
+
+/**
+ * Pergunta ao ML se publicaria, sem publicar e sem salvar.
+ *
+ * Manda o rascunho que está na tela: validar o que está no banco responderia
+ * sobre a versão antiga, e o usuário corrigiria o formulário só para receber
+ * de volta o mesmo erro.
+ */
+export function validarNoMl(
+  listingId: string,
+  rascunho?: AtualizacaoProduto,
+): Promise<{ valido: boolean; erro: string | null }> {
+  return apiPost<{ valido: boolean; erro: string | null }>(
+    `/products/${listingId}/validate`,
+    rascunho ?? {},
+  )
 }

@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateStockBatchDto, UpdateStockDto } from './dto/update-stock.dto';
+import { UpdateCustoDto, UpdateProductDto } from './dto/update-product.dto';
+import { Product } from './entities/product.entity';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { Listing } from './entities/listing.entity';
 import { Variation } from './entities/variation.entity';
@@ -24,6 +26,36 @@ export class ProductsController {
   @Get(':listingId')
   async buscar(@Param('listingId', ParseUUIDPipe) listingId: string): Promise<Listing> {
     return this.productsService.buscarListing(listingId);
+  }
+
+  /**
+   * Edita produto e rascunho. O que pode mudar depende do estado do anuncio
+   * -- ver a tabela em ProductsService.atualizar.
+   */
+  @Patch(':listingId')
+  async atualizar(
+    @Param('listingId', ParseUUIDPipe) listingId: string,
+    @Body() dto: UpdateProductDto,
+  ): Promise<Listing> {
+    return this.productsService.atualizar(listingId, dto);
+  }
+
+  /** Custo de aquisicao, alcancando produto que ainda nao tem anuncio. */
+  @Patch('produto/:productId/custo')
+  async atualizarCusto(
+    @Param('productId', ParseUUIDPipe) productId: string,
+    @Body() dto: UpdateCustoDto,
+  ): Promise<Product> {
+    return this.productsService.atualizarCusto(productId, dto.custoUnitario ?? null);
+  }
+
+  /** Pergunta ao ML se publicaria, sem publicar (POST /items/validate). */
+  @Post(':listingId/validate')
+  async validar(
+    @Param('listingId', ParseUUIDPipe) listingId: string,
+    @Body() rascunho?: UpdateProductDto,
+  ): Promise<{ valido: boolean; erro: string | null }> {
+    return this.productsService.validarNoMl(listingId, rascunho);
   }
 
   /** Publica o rascunho no Mercado Livre (POST /items). */

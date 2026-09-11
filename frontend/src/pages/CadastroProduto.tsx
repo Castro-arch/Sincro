@@ -1,111 +1,57 @@
-import { AppShell } from '@/components/layout/AppShell'
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { CategoriaSugerida } from '@/api/categories'
-import type { NovaVariacao } from '@/api/listings'
-import type { ImagemEnviada } from '@/api/pictures'
 import { PassoAtributos } from '@/components/cadastro/PassoAtributos'
 import { PassoCategoria } from '@/components/cadastro/PassoCategoria'
 import { PassoImagens } from '@/components/cadastro/PassoImagens'
-import { PassoVariacoes, type VariacaoForm } from '@/components/cadastro/PassoVariacoes'
+import { PassoVariacoes } from '@/components/cadastro/PassoVariacoes'
+import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/Button'
 import { AreaTexto, Campo, Entrada } from '@/components/ui/Campo'
-import { useAtributosDaCategoria } from '@/hooks/useCategorias'
 import { useCriarProduto } from '@/hooks/useAnuncios'
-
-function variacaoVazia(eixos: string[]): VariacaoForm {
-  return {
-    chave: crypto.randomUUID(),
-    sku: '',
-    valores: Object.fromEntries(eixos.map((e) => [e, ''])),
-    preco: '',
-    estoque: '',
-  }
-}
+import { useFormularioProduto } from '@/hooks/useFormularioProduto'
 
 export function CadastroProduto() {
   const navigate = useNavigate()
   const criar = useCriarProduto()
+  // Mesmo estado e mesmas regras da edição -- só muda o que se faz ao salvar.
+  const form = useFormularioProduto()
 
-  const [sku, setSku] = useState('')
-  const [nome, setNome] = useState('')
-  const [titulo, setTitulo] = useState('')
-  const [descricao, setDescricao] = useState('')
-  const [custoUnitario, setCustoUnitario] = useState('')
-  const [categoria, setCategoria] = useState<CategoriaSugerida | null>(null)
-  const [atributos, setAtributos] = useState<Record<string, string>>({})
-  const [imagens, setImagens] = useState<ImagemEnviada[]>([])
-  const [eixos, setEixos] = useState<string[]>([])
-  const [variacoes, setVariacoes] = useState<VariacaoForm[]>([variacaoVazia([])])
-
-  const { data: atributosDaCategoria } = useAtributosDaCategoria(categoria?.category_id ?? null)
-
-  // O backend aceita atributo sem `name`, mas o dashboard usa esse campo pra
-  // escrever "Cor: Azul" em vez de "COLOR: Azul" -- então mandamos sempre.
-  const nomeDoAtributo = (id: string): string =>
-    atributosDaCategoria?.find((a) => a.id === id)?.nome ?? id
-
-  const faltando: string[] = []
-  if (!sku.trim()) faltando.push('SKU')
-  if (!nome.trim()) faltando.push('nome')
-  if (!titulo.trim()) faltando.push('título')
-  if (!categoria) faltando.push('categoria')
-  if (variacoes.some((v) => !v.preco || Number(v.preco) <= 0)) faltando.push('preço da variação')
-  if (variacoes.some((v) => v.estoque === '' || Number(v.estoque) < 0)) faltando.push('estoque')
-  if (eixos.length > 0 && variacoes.some((v) => eixos.some((e) => !v.valores[e])))
-    faltando.push('valor de cada eixo de variação')
-
-  function montarVariacoes(): NovaVariacao[] {
-    return variacoes.map((v) => ({
-      sku: v.sku.trim() || undefined,
-      atributos: eixos.map((id) => ({
-        id,
-        name: nomeDoAtributo(id),
-        value_name: v.valores[id],
-      })),
-      preco: Number(v.preco),
-      estoque: Number(v.estoque),
-    }))
-  }
+  const faltando = form.faltando(true)
 
   async function salvar() {
-    const listing = await criar.mutateAsync({
-      sku: sku.trim(),
-      nome: nome.trim(),
-      titulo: titulo.trim(),
-      descricao: descricao.trim() || undefined,
-      custoUnitario: custoUnitario.trim() === '' ? undefined : Number(custoUnitario),
-      categoriaId: categoria?.category_id,
-      atributos: Object.entries(atributos)
-        .filter(([, valor]) => valor.trim() !== '')
-        .map(([id, valor]) => ({ id, name: nomeDoAtributo(id), value_name: valor })),
-      pictureIds: imagens.map((i) => i.id),
-      variacoes: montarVariacoes(),
+    await criar.mutateAsync({
+      sku: form.sku.trim(),
+      nome: form.nome.trim(),
+      titulo: form.titulo.trim(),
+      descricao: form.descricao.trim() || undefined,
+      custoUnitario: form.custoUnitario.trim() === '' ? undefined : Number(form.custoUnitario),
+      categoriaId: form.categoria?.category_id,
+      atributos: form.atributosParaEnvio(),
+      pictureIds: form.imagens.map((i) => i.id),
+      variacoes: form.montarVariacoes(),
     })
-    // Nasce como rascunho: a publicação é um passo separado, na tela de anúncios.
-    navigate('/anuncios', { state: { criado: listing.id } })
+    // Nasce como rascunho: publicar é um passo separado, na tela de anúncios.
+    navigate('/anuncios')
   }
 
   return (
     <AppShell>
-
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-6">
         <div>
-          <h1 className="font-display text-3xl font-extrabold text-ink">Novo produto</h1>
+          <h1 className="font-display text-2xl font-extrabold text-ink">Novo produto</h1>
           <p className="mt-1 text-sm text-ink-soft">
             O produto nasce como rascunho no Sincro. Publicar no Mercado Livre é um passo à parte,
             na tela de anúncios.
           </p>
         </div>
 
-        <section className="flex flex-col gap-4 cartao p-5">
+        <section className="cartao flex flex-col gap-4 p-5">
           <h2 className="text-sm font-semibold text-ink">1. Identificação</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Campo label="SKU" obrigatorio dica="Seu código interno, único no Sincro.">
-              <Entrada value={sku} onChange={(e) => setSku(e.target.value)} />
+              <Entrada value={form.sku} onChange={(e) => form.setSku(e.target.value)} />
             </Campo>
             <Campo label="Nome interno" obrigatorio>
-              <Entrada value={nome} onChange={(e) => setNome(e.target.value)} />
+              <Entrada value={form.nome} onChange={(e) => form.setNome(e.target.value)} />
             </Campo>
           </div>
           <Campo
@@ -114,9 +60,9 @@ export function CadastroProduto() {
             dica="É o que aparece no Mercado Livre e o que alimenta a sugestão de categoria."
           >
             <Entrada
-              value={titulo}
+              value={form.titulo}
               maxLength={200}
-              onChange={(e) => setTitulo(e.target.value)}
+              onChange={(e) => form.setTitulo(e.target.value)}
             />
           </Campo>
           <Campo
@@ -127,50 +73,43 @@ export function CadastroProduto() {
               type="number"
               min="0"
               step="0.01"
-              value={custoUnitario}
-              onChange={(e) => setCustoUnitario(e.target.value)}
+              value={form.custoUnitario}
+              onChange={(e) => form.setCustoUnitario(e.target.value)}
               placeholder="opcional"
               className="sm:w-48"
             />
           </Campo>
           <Campo label="Descrição">
-            <AreaTexto value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+            <AreaTexto value={form.descricao} onChange={(e) => form.setDescricao(e.target.value)} />
           </Campo>
         </section>
 
         <PassoCategoria
-          titulo={titulo}
-          categoriaId={categoria?.category_id ?? null}
-          categoriaNome={categoria?.category_name ?? null}
-          onEscolher={(c) => {
-            setCategoria(c)
-            // Atributos e eixos pertencem à categoria: trocar de categoria
-            // invalida os dois, e manter valores antigos mandaria lixo ao ML.
-            setAtributos({})
-            setEixos([])
-            setVariacoes([variacaoVazia([])])
-          }}
+          titulo={form.titulo}
+          categoriaId={form.categoria?.category_id ?? null}
+          categoriaNome={form.categoria?.category_name ?? null}
+          onEscolher={form.escolherCategoria}
         />
 
         <PassoAtributos
-          categoriaId={categoria?.category_id ?? null}
-          valores={atributos}
-          eixosDeVariacao={eixos}
-          onMudar={(id, valor) => setAtributos((prev) => ({ ...prev, [id]: valor }))}
+          categoriaId={form.categoria?.category_id ?? null}
+          valores={form.atributos}
+          eixosDeVariacao={form.eixos}
+          onMudar={(id, valor) => form.setAtributos((prev) => ({ ...prev, [id]: valor }))}
         />
 
-        <PassoImagens imagens={imagens} onMudar={setImagens} />
+        <PassoImagens imagens={form.imagens} onMudar={form.setImagens} />
 
         <PassoVariacoes
-          categoriaId={categoria?.category_id ?? null}
-          eixos={eixos}
-          variacoes={variacoes}
-          onMudarEixos={setEixos}
-          onMudarVariacoes={setVariacoes}
+          categoriaId={form.categoria?.category_id ?? null}
+          eixos={form.eixos}
+          variacoes={form.variacoes}
+          onMudarEixos={form.setEixos}
+          onMudarVariacoes={form.setVariacoes}
         />
 
         {criar.isError && (
-          <p className="border border-danger bg-surface px-5 py-3 text-sm text-danger-ink">
+          <p className="border border-danger bg-danger-tint px-5 py-3 text-sm text-danger-ink">
             {(criar.error as Error).message}
           </p>
         )}

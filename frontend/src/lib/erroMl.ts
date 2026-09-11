@@ -39,3 +39,16 @@ export function lerErroMl(bruto: string): ErroMlLegivel {
     causas: resto.map(traduzir),
   }
 }
+
+/**
+ * Verdadeiro quando todas as causas restantes sao de Mercado Envios.
+ *
+ * Importa porque o /items/validate e MAIS rigoroso que a publicacao real: a
+ * caneca (MLB7614128174) foi publicada com sucesso em 2026-09-09 tendo estes
+ * mesmos avisos de ME, que o POST /items tratou como warning. Sem essa
+ * distincao a tela diria "nao passaria" para um anuncio que passa.
+ */
+export function somenteAvisosDeEnvio({ causas }: ErroMlLegivel): boolean {
+  if (causas.length === 0) return false
+  return causas.every((c) => /Mercado Envios|mode me1|ME2/i.test(c))
+}

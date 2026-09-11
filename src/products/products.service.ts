@@ -6,12 +6,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { Listing, ListingStatus } from './entities/listing.entity';
 import { Variation } from './entities/variation.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateStockBatchDto, UpdateStockDto } from './dto/update-stock.dto';
+import { UpdateProductDto, UpdateVariationDto } from './dto/update-product.dto';
 import { StatusMl } from './dto/update-status.dto';
 import { MlCategoryService } from '../mercado-livre/categories/ml-category.service';
 import { MlItemService } from '../mercado-livre/items/ml-item.service';
@@ -99,6 +100,140 @@ export class ProductsService {
       this.logger.log(`Produto "${produto.sku}" criado como rascunho (listing ${listing.id}).`);
       return this.carregarListing(listing.id, manager.getRepository(Listing));
     });
+  }
+
+  // ------------------------------------------------------------------- edicao
+
+  /**
+   * Edita produto e rascunho. O que pode mudar depende do estado do anuncio:
+   *
+   *   campo                          rascunho/erro   publicado
+   *   nome, descricao, custo         sim             sim (so no Sincro)
+   *   titulo, atributos, imagens     sim             sim (reenviado ao ML)
+   *   categoria                      sim             NAO
+   *   combinacoes de variacao        sim             NAO (so preco/estoque)
+   *
+   * A categoria e bloqueada porque o ML recusa com
+   * `item.category_id.not_modifiable` (verificado em 2026-09-11): em anuncio
+   * publicado, mudar de categoria exige encerrar e recriar. Recusar aqui, com
+   * o motivo, e melhor do que deixar o ML recusar depois sem contexto.
+   */
+  async atualizar(listingId: string, dto: UpdateProductDto): Promise<Listing> {
+    const listing = await this.carregarListing(listingId, this.listingsRepo);
+    const publicado = Boolean(listing.mlItemId);
+
+    if (publicado && dto.categoriaId && dto.categoriaId !== listing.categoriaId) {
+      throw new ConflictException(
+        `A categoria de um anúncio publicado não pode ser alterada: o Mercado Livre recusa com "item.category_id.not_modifiable". Para mudar de categoria, encerre este anúncio (${listing.mlItemId}) e cadastre outro produto.`,
+      );
+    }
+
+    const variacoes = await this.variacoesDo(listingId);
+    if (publicado && dto.variacoes?.some((v) => !v.variationId || v.atributos)) {
+      throw new ConflictException(
+        'Em anúncio publicado só dá para ajustar preço e estoque das variações existentes. Criar ou recombinar variação exige um anúncio novo.',
+      );
+    }
+
+    const categoriaFinal = dto.categoriaId ?? listing.categoriaId;
+    const atributosFinais = dto.atributos ?? listing.atributos;
+
+    // Mesma checagem do cadastro -- nao ha segunda copia da regra.
+    if (categoriaFinal && (dto.atributos || dto.categoriaId)) {
+      const combinacoes = (dto.variacoes ?? variacoes).flatMap((v) =>
+        (v.atributos ?? []).map((a) => String(a.id)),
+      );
+      await this.garantirAtributosObrigatorios(categoriaFinal, atributosFinais, combinacoes);
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      if (dto.nome !== undefined || dto.descricao !== undefined || dto.custoUnitario !== undefined) {
+        const produto = await manager.findOneByOrFail(Product, { id: listing.productId });
+        if (dto.nome !== undefined) produto.nome = dto.nome;
+        if (dto.descricao !== undefined) produto.descricao = dto.descricao || null;
+        if (dto.custoUnitario !== undefined) produto.custoUnitario = dto.custoUnitario ?? null;
+        await manager.save(produto);
+      }
+
+      if (dto.titulo !== undefined) listing.titulo = dto.titulo;
+      if (dto.descricao !== undefined) listing.descricao = dto.descricao || null;
+      if (dto.categoriaId !== undefined) listing.categoriaId = dto.categoriaId;
+      if (dto.atributos !== undefined) listing.atributos = dto.atributos;
+      if (dto.pictureIds !== undefined) listing.pictureIds = dto.pictureIds;
+      await manager.save(listing);
+
+      for (const entrada of dto.variacoes ?? []) {
+        await this.aplicarVariacao(manager, listing, variacoes, entrada);
+      }
+    });
+
+    // O anuncio ja publicado tem que refletir a edicao no ML. Falhar aqui nao
+    // desfaz a edicao local: o rascunho corrigido e o que interessa guardar, e
+    // `sincronizar` pode ser repetido.
+    if (publicado) {
+      try {
+        await this.sincronizarComMl(listingId);
+      } catch (erro) {
+        this.logger.error(
+          `Edição salva, mas o Mercado Livre recusou a sincronização de ${listing.mlItemId}: ${
+            erro instanceof Error ? erro.message : String(erro)
+          }`,
+        );
+        throw erro;
+      }
+    }
+
+    return this.carregarListing(listingId, this.listingsRepo);
+  }
+
+  /** Custo de aquisicao isolado -- alcanca produto que nem anuncio tem. */
+  async atualizarCusto(productId: string, custoUnitario: number | null): Promise<Product> {
+    const produto = await this.productsRepo.findOne({ where: { id: productId } });
+    if (!produto) {
+      throw new NotFoundException(`Produto ${productId} nao encontrado.`);
+    }
+    produto.custoUnitario = custoUnitario;
+    return this.productsRepo.save(produto);
+  }
+
+  /**
+   * Pergunta ao ML se o anuncio passaria, sem publicar.
+   * Devolve a lista de causas em vez de estourar: a tela usa isso para guiar
+   * a correcao campo a campo.
+   */
+  async validarNoMl(
+    listingId: string,
+    rascunho?: UpdateProductDto,
+  ): Promise<{ valido: boolean; erro: string | null }> {
+    const listing = await this.carregarListing(listingId, this.listingsRepo);
+    let variacoes = await this.variacoesDo(listingId);
+
+    // Aplica o que esta na TELA sobre uma copia em memoria, sem persistir.
+    // Sem isto a validacao respondia sobre o rascunho salvo, e o usuario
+    // corrigia o formulario para receber de volta o erro da versao antiga.
+    if (rascunho) {
+      if (rascunho.titulo !== undefined) listing.titulo = rascunho.titulo;
+      if (rascunho.categoriaId !== undefined) listing.categoriaId = rascunho.categoriaId;
+      if (rascunho.atributos !== undefined) listing.atributos = rascunho.atributos;
+      if (rascunho.pictureIds !== undefined) listing.pictureIds = rascunho.pictureIds;
+      if (rascunho.variacoes?.length) {
+        variacoes = rascunho.variacoes.map((v, i) =>
+          Object.assign(Object.create(Object.getPrototypeOf(variacoes[i] ?? {})), variacoes[i], {
+            atributos: v.atributos ?? variacoes[i]?.atributos ?? [],
+            preco: v.preco ?? variacoes[i]?.preco ?? 0,
+            estoque: v.estoque ?? variacoes[i]?.estoque ?? 0,
+            pictureIds: v.pictureIds ?? variacoes[i]?.pictureIds ?? [],
+          }),
+        ) as Variation[];
+      }
+    }
+
+    try {
+      await this.itemService.validar(listing, variacoes);
+      return { valido: true, erro: null };
+    } catch (erro) {
+      return { valido: false, erro: erro instanceof Error ? erro.message : String(erro) };
+    }
   }
 
   // ------------------------------------------------------------------- leitura
@@ -365,6 +500,39 @@ export class ProductsService {
       where: { mlItemId },
       relations: { variations: true },
     });
+  }
+
+  /** Atualiza uma variacao existente ou cria nova (so em rascunho). */
+  private async aplicarVariacao(
+    manager: EntityManager,
+    listing: Listing,
+    existentes: Variation[],
+    entrada: UpdateVariationDto,
+  ): Promise<void> {
+    if (entrada.variationId) {
+      const atual = existentes.find((v) => v.id === entrada.variationId);
+      if (!atual) {
+        throw new NotFoundException(`Variacao ${entrada.variationId} nao pertence a este anuncio.`);
+      }
+      if (entrada.sku !== undefined) atual.sku = entrada.sku || null;
+      if (entrada.atributos !== undefined) atual.atributos = entrada.atributos;
+      if (entrada.preco !== undefined) atual.preco = entrada.preco;
+      if (entrada.estoque !== undefined) atual.estoque = entrada.estoque;
+      if (entrada.pictureIds !== undefined) atual.pictureIds = entrada.pictureIds;
+      await manager.save(atual);
+      return;
+    }
+
+    await manager.save(
+      manager.create(Variation, {
+        listingId: listing.id,
+        sku: entrada.sku ?? null,
+        atributos: entrada.atributos ?? [],
+        preco: entrada.preco ?? 0,
+        estoque: entrada.estoque ?? 0,
+        pictureIds: entrada.pictureIds ?? [],
+      }),
+    );
   }
 
   private async carregarListing(listingId: string, repo: Repository<Listing>): Promise<Listing> {

@@ -61,6 +61,14 @@ export function apiPut<T>(path: string, body: unknown): Promise<T> {
   }).then(handle<T>)
 }
 
+export function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  return fetch(`${API_BASE_URL}${path}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).then(handle<T>)
+}
+
 export function apiPostForm<T>(path: string, form: FormData): Promise<T> {
   return fetch(`${API_BASE_URL}${path}`, { method: 'POST', body: form }).then(handle<T>)
 }

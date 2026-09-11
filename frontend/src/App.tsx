@@ -3,6 +3,7 @@ import { Anuncios } from '@/pages/Anuncios'
 import { CadastroProduto } from '@/pages/CadastroProduto'
 import { Dashboard } from '@/pages/Dashboard'
 import { Pedidos } from '@/pages/Pedidos'
+import { EditarProduto } from '@/pages/EditarProduto'
 import { Margem } from '@/pages/Margem'
 import { Perguntas } from '@/pages/Perguntas'
 
@@ -12,6 +13,7 @@ function App() {
       <Route path="/" element={<Dashboard />} />
       <Route path="/anuncios" element={<Anuncios />} />
       <Route path="/produtos/novo" element={<CadastroProduto />} />
+      <Route path="/produtos/:listingId/editar" element={<EditarProduto />} />
       <Route path="/pedidos" element={<Pedidos />} />
       <Route path="/perguntas" element={<Perguntas />} />
       <Route path="/margem" element={<Margem />} />

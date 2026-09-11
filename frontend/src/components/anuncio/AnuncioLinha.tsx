@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { AnuncioResumo } from '@/api/listings'
 import { EditorEstoque } from '@/components/anuncio/EditorEstoque'
 import { StatusAnuncio } from '@/components/anuncio/StatusAnuncio'
@@ -107,6 +108,12 @@ export function AnuncioLinha({ anuncio }: { anuncio: AnuncioResumo }) {
               Reativar
             </Button>
           )}
+          <Link
+            to={`/produtos/${anuncio.listingId}/editar`}
+            className="rounded-sm px-2 py-1.5 text-xs text-blue-ink hover:bg-blue-tint"
+          >
+            editar
+          </Link>
           <button
             type="button"
             onClick={() => setAberto((v) => !v)}

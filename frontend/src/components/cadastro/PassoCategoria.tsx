@@ -1,6 +1,7 @@
 import type { CategoriaSugerida } from '@/api/categories'
 import { Button } from '@/components/ui/Button'
 import { Campo, Entrada } from '@/components/ui/Campo'
+import { useState } from 'react'
 import { usePreverCategoria } from '@/hooks/useCategorias'
 
 export function PassoCategoria({
@@ -15,7 +16,12 @@ export function PassoCategoria({
   onEscolher: (categoria: CategoriaSugerida | null) => void
 }) {
   const prever = usePreverCategoria()
+  const [manual, setManual] = useState('')
   const sugestoes = prever.data ?? []
+  // O predictor do ML e intermitente: medido em 2026-09-11, a mesma consulta
+  // devolveu 0 resultados numa tentativa e 5 na seguinte. Sem um caminho
+  // manual, um vazio transitorio deixaria o rascunho preso sem categoria.
+  const vazio = prever.isSuccess && sugestoes.length === 0
 
   return (
     <section className="flex flex-col gap-4 cartao p-5">
@@ -47,7 +53,7 @@ export function PassoCategoria({
       )}
 
       {sugestoes.length > 0 && (
-        <ul className="flex flex-col gap-2">
+        <ul aria-label="Categorias sugeridas" className="flex flex-col gap-2">
           {sugestoes.map((s) => (
             <li key={s.category_id}>
               <button
@@ -67,10 +73,49 @@ export function PassoCategoria({
         </ul>
       )}
 
+      {vazio && (
+        <p className="text-xs text-warning-ink">
+          O Mercado Livre não sugeriu nenhuma categoria para este título. Isso acontece de forma
+          intermitente — tente de novo, ou informe o ID abaixo.
+        </p>
+      )}
+
+      <div className="flex items-end gap-3 border-t border-line pt-4">
+        <div className="flex-1">
+          <Campo
+            label="Ou informe o ID da categoria"
+            dica="Use quando souber o ID (ex.: MLB9206) ou quando a sugestão não vier."
+          >
+            <Entrada
+              value={manual}
+              onChange={(e) => setManual(e.target.value.trim().toUpperCase())}
+              placeholder="MLB0000"
+            />
+          </Campo>
+        </div>
+        <Button
+          variant="secondary"
+          disabled={!/^ML[A-Z][0-9]+$/.test(manual)}
+          onClick={() => {
+            onEscolher({ category_id: manual, category_name: '' })
+            setManual('')
+          }}
+        >
+          Usar
+        </Button>
+      </div>
+
       {categoriaId && (
         <p className="text-xs text-ink-soft">
-          Escolhida: <span className="text-ink">{categoriaNome}</span>{' '}
-          <span className="font-mono text-ink-faint">({categoriaId})</span>{' '}
+          Escolhida:{' '}
+          {categoriaNome ? (
+            <>
+              <span className="text-ink">{categoriaNome}</span>{' '}
+              <span className="font-mono text-ink-faint">({categoriaId})</span>
+            </>
+          ) : (
+            <span className="font-mono text-ink">{categoriaId}</span>
+          )}{' '}
           <button
             type="button"
             onClick={() => onEscolher(null)}

@@ -59,6 +59,21 @@ export class MlItemService {
     return item;
   }
 
+  /**
+   * Roda o payload pelo validador do ML sem criar nada.
+   *
+   * POST /items/validate devolve 204 quando passaria, e o mesmo corpo de erro
+   * de um POST /items recusado quando nao. Verificado em 2026-09-11 com o
+   * payload que a camiseta usou: voltaram as mesmas causas (AGE_GROUP e
+   * SIZE_GRID_ID), entao isto e previsao fiel do resultado da publicacao --
+   * e evita criar estado inconsistente no ML para descobrir o erro.
+   */
+  async validar(listing: Listing, variations: Variation[]): Promise<void> {
+    const payload = this.montarPayload(listing, variations);
+    // O 204 nao tem corpo; o erro sobe como HttpException pelo MlHttpService.
+    await this.http.post('/items/validate', payload);
+  }
+
   /** Descricao vai em endpoint proprio, separado do item. */
   async definirDescricao(mlItemId: string, descricao: string): Promise<void> {
     await this.http.post(`/items/${mlItemId}/description`, { plain_text: descricao });
