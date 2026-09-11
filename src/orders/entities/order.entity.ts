@@ -70,6 +70,24 @@ export class Order {
   @Column({ name: 'status', type: 'varchar', length: 20 })
   status!: OrderStatus;
 
+  /**
+   * Comissao que o ML cobrou por este item (order_items[].sale_fee).
+   * Nula quando o pedido veio sem o campo -- a comissao so e calculada na
+   * acreditacao do pagamento, e pedidos antigos podem nao traze-la.
+   */
+  @Column({
+    name: 'taxa_ml',
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (value: number | null) => value,
+      from: (value: string | null) => (value === null ? null : Number(value)),
+    },
+  })
+  taxaMl!: number | null;
+
   /** Status cru do ML (paid, cancelled, payment_required...) para auditoria. */
   @Column({ name: 'status_ml', type: 'varchar', length: 40, nullable: true })
   statusMl!: string | null;

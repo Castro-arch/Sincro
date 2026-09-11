@@ -7,6 +7,7 @@ import { Listing } from '../products/entities/listing.entity';
 import { Variation } from '../products/entities/variation.entity';
 import { Order } from '../orders/entities/order.entity';
 import { Question } from '../questions/entities/question.entity';
+import { Configuracao } from '../configuracoes/entities/configuracao.entity';
 
 loadEnv();
 
@@ -21,7 +22,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USER ?? 'sincro',
   password: process.env.DB_PASSWORD ?? 'sincro',
   database: process.env.DB_NAME ?? 'sincro',
-  entities: [MlCredentials, Product, Listing, Variation, Order, Question],
+  entities: [MlCredentials, Product, Listing, Variation, Order, Question, Configuracao],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   migrationsTableName: 'sincro_migrations',
   synchronize: false,

@@ -5,6 +5,7 @@ import {
   IconeMais,
   IconePainel,
   IconePedido,
+  IconeMargem,
   IconePergunta,
   IconeRecolher,
 } from '@/components/ui/Icone'
@@ -22,6 +23,7 @@ const ITENS: Array<{ rotulo: string; para: string; icone: Icone; exato?: boolean
   { rotulo: 'Anúncios', para: '/anuncios', icone: IconeEtiqueta },
   { rotulo: 'Pedidos', para: '/pedidos', icone: IconePedido },
   { rotulo: 'Perguntas', para: '/perguntas', icone: IconePergunta, selo: 'perguntas' },
+  { rotulo: 'Margem', para: '/margem', icone: IconeMargem },
   { rotulo: 'Cadastrar produto', para: '/produtos/novo', icone: IconeMais },
 ]
 

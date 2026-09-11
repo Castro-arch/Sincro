@@ -138,6 +138,8 @@ export class OrdersService {
         listingId,
         quantidade: item.quantity,
         valor: item.unit_price * item.quantity,
+        // Comissao real do ML. Ja vinha na resposta e era descartada.
+        taxaMl: item.sale_fee ?? null,
         status,
         statusMl: pedido.status,
         estoqueBaixado: false,
@@ -145,9 +147,16 @@ export class OrdersService {
       });
       registro = await this.ordersRepo.save(registro);
       resultado.itensNovos++;
-    } else if (registro.status !== status || registro.statusMl !== pedido.status) {
+    } else if (
+      registro.status !== status ||
+      registro.statusMl !== pedido.status ||
+      (item.sale_fee !== undefined && registro.taxaMl !== item.sale_fee)
+    ) {
       registro.status = status;
       registro.statusMl = pedido.status;
+      // A comissao so existe apos a acreditacao do pagamento: um pedido lido
+      // antes disso volta depois ja com o valor, e e aqui que ele entra.
+      if (item.sale_fee !== undefined) registro.taxaMl = item.sale_fee;
       await this.ordersRepo.save(registro);
     }
 

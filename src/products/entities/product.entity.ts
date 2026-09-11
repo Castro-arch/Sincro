@@ -26,6 +26,24 @@ export class Product {
   @Column({ name: 'descricao', type: 'text', nullable: true })
   descricao!: string | null;
 
+  /**
+   * Quanto se pagou por unidade. Nulo enquanto nao informado -- o relatorio
+   * de margem marca o produto como "sem custo" em vez de tratar 0 como
+   * verdade e inflar o lucro.
+   */
+  @Column({
+    name: 'custo_unitario',
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (value: number | null) => value,
+      from: (value: string | null) => (value === null ? null : Number(value)),
+    },
+  })
+  custoUnitario!: number | null;
+
   @CreateDateColumn({ name: 'criado_em', type: 'timestamptz' })
   criadoEm!: Date;
 

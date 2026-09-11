@@ -31,6 +31,7 @@ export function CadastroProduto() {
   const [nome, setNome] = useState('')
   const [titulo, setTitulo] = useState('')
   const [descricao, setDescricao] = useState('')
+  const [custoUnitario, setCustoUnitario] = useState('')
   const [categoria, setCategoria] = useState<CategoriaSugerida | null>(null)
   const [atributos, setAtributos] = useState<Record<string, string>>({})
   const [imagens, setImagens] = useState<ImagemEnviada[]>([])
@@ -73,6 +74,7 @@ export function CadastroProduto() {
       nome: nome.trim(),
       titulo: titulo.trim(),
       descricao: descricao.trim() || undefined,
+      custoUnitario: custoUnitario.trim() === '' ? undefined : Number(custoUnitario),
       categoriaId: categoria?.category_id,
       atributos: Object.entries(atributos)
         .filter(([, valor]) => valor.trim() !== '')
@@ -115,6 +117,20 @@ export function CadastroProduto() {
               value={titulo}
               maxLength={200}
               onChange={(e) => setTitulo(e.target.value)}
+            />
+          </Campo>
+          <Campo
+            label="Custo de aquisição (R$ por unidade)"
+            dica="Quanto você paga por unidade. Sem isso, o relatório de Margem mostra receita menos taxa e imposto — não lucro."
+          >
+            <Entrada
+              type="number"
+              min="0"
+              step="0.01"
+              value={custoUnitario}
+              onChange={(e) => setCustoUnitario(e.target.value)}
+              placeholder="opcional"
+              className="sm:w-48"
             />
           </Campo>
           <Campo label="Descrição">

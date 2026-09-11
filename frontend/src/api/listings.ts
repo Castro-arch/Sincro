@@ -78,6 +78,8 @@ export interface NovoProduto {
   sku: string
   nome: string
   descricao?: string
+  /** Custo por unidade; alimenta o relatório de Margem. */
+  custoUnitario?: number
   titulo?: string
   categoriaId?: string
   atributos?: MlAttribute[]

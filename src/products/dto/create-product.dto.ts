@@ -87,6 +87,12 @@ export class CreateProductDto {
   @IsOptional()
   descricao?: string;
 
+  /** Quanto se paga por unidade. Alimenta o relatorio de margem. */
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @IsOptional()
+  custoUnitario?: number;
+
   // ---------- anuncio ----------
   /** Titulo do anuncio no ML. Se omitido, usa `nome`. */
   @IsString()

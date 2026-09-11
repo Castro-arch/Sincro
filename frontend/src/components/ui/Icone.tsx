@@ -93,3 +93,12 @@ export function IconePergunta(props: Props) {
     </Base>
   )
 }
+
+export function IconeMargem(props: Props) {
+  return (
+    <Base {...props}>
+      <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+      <path d="m7 14 3.5-3.5 3 3L20 7" />
+    </Base>
+  )
+}

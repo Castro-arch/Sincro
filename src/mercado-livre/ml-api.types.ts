@@ -76,6 +76,13 @@ export interface MlOrderItem {
   };
   quantity: number;
   unit_price: number;
+  /**
+   * Comissao cobrada pelo ML neste item. Confirmada na doc de orders (dois
+   * exemplos) mas ainda nao observada ao vivo: a conta nao teve vendas. E
+   * opcional porque a doc avisa que so existe apos a acreditacao do pagamento.
+   */
+  sale_fee?: number;
+  listing_type_id?: string;
 }
 
 export interface MlOrder {

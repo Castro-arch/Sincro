@@ -5,6 +5,8 @@ import { MercadoLivreModule } from './mercado-livre/mercado-livre.module';
 import { ProductsModule } from './products/products.module';
 import { OrdersModule } from './orders/orders.module';
 import { QuestionsModule } from './questions/questions.module';
+import { ConfiguracoesModule } from './configuracoes/configuracoes.module';
+import { MargemModule } from './margem/margem.module';
 import { JobsModule } from './jobs/jobs.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 
@@ -16,6 +18,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ProductsModule,
     OrdersModule,
     QuestionsModule,
+    ConfiguracoesModule,
+    MargemModule,
     JobsModule,
     DashboardModule,
   ],

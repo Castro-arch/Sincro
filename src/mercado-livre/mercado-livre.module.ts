@@ -9,6 +9,7 @@ import { MlCategoryController } from './categories/ml-category.controller';
 import { MlPictureService } from './pictures/ml-picture.service';
 import { MlPictureController } from './pictures/ml-picture.controller';
 import { MlItemService } from './items/ml-item.service';
+import { MlListingPriceService } from './items/ml-listing-price.service';
 import { MlOrderService } from './orders/ml-order.service';
 import { MlQuestionService } from './questions/ml-question.service';
 
@@ -27,6 +28,7 @@ import { MlQuestionService } from './questions/ml-question.service';
     MlItemService,
     MlOrderService,
     MlQuestionService,
+    MlListingPriceService,
   ],
   exports: [
     MlAuthService,
@@ -35,6 +37,7 @@ import { MlQuestionService } from './questions/ml-question.service';
     MlItemService,
     MlOrderService,
     MlQuestionService,
+    MlListingPriceService,
   ],
 })
 export class MercadoLivreModule {}

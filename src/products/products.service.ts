@@ -64,6 +64,7 @@ export class ProductsService {
           sku: dto.sku,
           nome: dto.nome,
           descricao: dto.descricao ?? null,
+          custoUnitario: dto.custoUnitario ?? null,
         }),
       );
 
